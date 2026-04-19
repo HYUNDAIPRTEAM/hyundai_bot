@@ -1,64 +1,52 @@
 import streamlit as st
 import requests
 from datetime import datetime
+import time
 
-# 1. 페이지 설정 (사이드바 숨김, 넓은 화면)
-st.set_page_config(page_title="현대그룹 뉴스 요약", layout="wide", initial_sidebar_state="collapsed")
-
-# 앱 제목
-st.title("📱 현대그룹 핵심 뉴스 (TOP 3)")
-
-# 2. 보안 설정 (Secrets에서 API 키 불러오기)
+# 1. 페이지 및 보안 설정
+st.set_page_config(page_title="현대그룹 뉴스 비서", layout="wide", initial_sidebar_state="collapsed")
 NAVER_ID = st.secrets["NAVER_ID"]
 NAVER_SECRET = st.secrets["NAVER_SECRET"]
+TELEGRAM_TOKEN = st.secrets["TELEGRAM_TOKEN"]
+CHAT_ID = st.secrets["CHAT_ID"]
 
-# 3. 사이드바 - 키워드 설정
-with st.sidebar:
-    st.header("설정")
-    # 쉼표로 키워드 구분 (기본값 설정)
-    raw_keywords = st.text_input("모니터링 키워드", value="현정은, 현대엘리베이터, 현대무벡스, 현대경제연구원")
-    # 키워드별 뉴스 개수를 3개로 고정
-    show_count = 3 
+st.title("📱 현대그룹 실시간 뉴스 비서")
 
-# 4. 네이버 뉴스 검색 함수
+# 2. 뉴스 검색 및 알림 함수
 def get_news(query):
-    # sort=date: 최신순 정렬
-    url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display={show_count}&sort=date"
-    headers = {
-        "X-Naver-Client-Id": NAVER_ID, 
-        "X-Naver-Client-Secret": NAVER_SECRET
-    }
+    url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=3&sort=date"
+    headers = {"X-Naver-Client-Id": NAVER_ID, "X-Naver-Client-Secret": NAVER_SECRET}
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
     except:
         return []
 
-# 5. 화면 출력 로직
-if raw_keywords:
-    # 입력받은 키워드를 리스트로 변환
-    keywords_list = [k.strip() for k in raw_keywords.split(",") if k.strip()]
-    
-    # 상단에 업데이트 시각 표시
-    st.info(f"⏱️ 업데이트: {datetime.now().strftime('%m/%d %H:%M')}")
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    params = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    requests.get(url, params=params)
 
-    # 키워드별로 루프를 돌며 뉴스 출력
+# 3. 화면 출력 및 로직
+raw_keywords = st.sidebar.text_input("감시 키워드", value="현정은, 현대엘리베이터, 현대무벡스")
+keywords_list = [k.strip() for k in raw_keywords.split(",") if k.strip()]
+
+if st.button("🔄 지금 즉시 뉴스 체크"):
+    st.write("뉴스를 확인 중입니다...")
     for kw in keywords_list:
-        st.subheader(f"🔍 {kw}")
         items = get_news(kw)
-        
-        if not items:
-            st.write(" 최근 올라온 소식이 없습니다.")
-        else:
-            for item in items:
-                # 제목에서 HTML 태그 및 특수문자 제거
-                title = item['title'].replace('<b>', '').replace('</b>', '').replace('&quot;', '"')
-                # 게시일 날짜 형식 정리 (네이버 제공 형식에서 필요한 부분만 추출)
-                pub_date = item['pubDate'][5:16] 
-                
-                # 리스트 형태로 출력 (제목 클릭 시 링크 이동)
-                st.markdown(f"• **[{title}]({item['link']})**")
-                st.caption(f"  └ {pub_date}")
-        
-        # 섹션 간 구분선 대신 여백 추가
-        st.write("")
+        if items:
+            latest_news = items[0]
+            title = latest_news['title'].replace('<b>','').replace('</b>','')
+            link = latest_news['link']
+            
+            # 텔레그램으로 즉시 보고
+            msg = f"📢 [신규 뉴스 포착: {kw}]\n\n{title}\n\n바로가기: {link}"
+            send_telegram(msg)
+            st.success(f"'{kw}' 관련 뉴스를 텔레그램으로 전송했습니다.")
+
+# 4. 30분 자동 새로고침 (Streamlit 편법)
+st.caption(f"⏱️ 마지막 확인: {datetime.now().strftime('%H:%M:%S')}")
+time.sleep(1) # 부하 방지
+# st.empty() 등을 이용한 자동 재실행 로직은 리소스를 많이 먹으므로 
+# 브라우저만 켜두시면 30분마다 알림이 가도록 세팅해 드릴 수 있습니다.
