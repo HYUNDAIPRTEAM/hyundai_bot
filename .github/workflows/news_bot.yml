@@ -1,0 +1,32 @@
+name: Hyundai News Bot
+
+on:
+  schedule:
+    # 한국 시간은 UTC보다 9시간 빠릅니다.
+    # 오전 6시(21:00), 7시(22:00), 오후 5시(08:00), 7시(10:00)
+    - cron: '0 21,22,8,10 * * *'
+  workflow_dispatch: # 필요할 때 수동으로 '실행' 버튼을 눌러볼 수 있게 합니다.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run news bot
+        env:
+          NAVER_ID: ${{ secrets.NAVER_ID }}
+          NAVER_SECRET: ${{ secrets.NAVER_SECRET }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python bot.py
