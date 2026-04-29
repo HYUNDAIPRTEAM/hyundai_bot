@@ -14,7 +14,7 @@ def fetch_all_news(kw):
     
     # 구글 뉴스
     g_url = f"https://news.google.com/rss/search?q={quote(kw)}&hl=ko&gl=KR&ceid=KR:ko"
-    g_res = feedparser.parse(g_url).entries[:5]
+    g_res = feedparser.parse(g_url).entries[:10]
     
     return n_res, g_res
 
