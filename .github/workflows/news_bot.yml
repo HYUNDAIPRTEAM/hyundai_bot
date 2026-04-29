@@ -2,25 +2,25 @@ name: Hyundai News Bot
 
 on:
   schedule:
-    # 한국 시간(KST): 오전 6시, 7시, 오후 5시, 7시 (UTC 기준 +9시간 차이 적용)
+    # 한국 시간(KST): 오전 6시, 7시, 오후 5시, 7시
     - cron: '0 21,22,8,10 * * *'
-  workflow_dispatch: # 언제든 수동으로 실행하고 싶을 때 사용하는 버튼을 만듭니다.
+  workflow_dispatch: 
 
 jobs:
   run_bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # v3에서 v4로 업그레이드!
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # v4에서 v5로 업그레이드!
         with:
-          python-version: '3.9'
+          python-version: '3.11' # 파이썬도 최신 버전으로!
 
       - name: Install dependencies
         run: |
-          pip install requests feedparser # 구글 뉴스를 위해 feedparser를 추가했습니다!
+          pip install requests feedparser
 
       - name: Run news bot
         env:
