@@ -23,7 +23,7 @@ def get_google_news(query):
         # 구글 뉴스 RSS 피드 이용 (한국어 설정)
         url = f"https://news.google.com/rss/search?q={encoded_query}&hl=ko&gl=KR&ceid=KR:ko"
         feed = feedparser.parse(url)
-        return feed.entries[:5]
+        return feed.entries[:10]
     except:
         return []
 
