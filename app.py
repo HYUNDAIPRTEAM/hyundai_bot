@@ -1,39 +1,43 @@
 import streamlit as st
 import requests
-from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
+import feedparser
+from urllib.parse import quote
 
-# 30분마다 자동 새로고침 (화면 업데이트용)
-st_autorefresh(interval=30 * 60 * 1000, key="news_check")
+st.title("📢 현대 뉴스 실시간 브리핑")
 
-st.title("🚀 현대그룹 뉴스 대시보드 (알람 중단 모드)")
+# 1. 뉴스 가져오기 함수 (기존 로직 활용)
+def fetch_all_news(kw):
+    # 네이버 뉴스
+    n_url = f"https://openapi.naver.com/v1/search/news.json?query={kw}&display=3&sort=date"
+    headers = {"X-Naver-Client-Id": st.secrets["NAVER_ID"], "X-Naver-Client-Secret": st.secrets["NAVER_SECRET"]}
+    n_res = requests.get(n_url, headers=headers).json().get('items', [])
+    
+    # 구글 뉴스
+    g_url = f"https://news.google.com/rss/search?q={quote(kw)}&hl=ko&gl=KR&ceid=KR:ko"
+    g_res = feedparser.parse(g_url).entries[:3]
+    
+    return n_res, g_res
 
-# 보안 정보
-NAVER_ID = st.secrets["NAVER_ID"]
-NAVER_SECRET = st.secrets["NAVER_SECRET"]
-
-def get_news(query):
-    url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
-    headers = {"X-Naver-Client-Id": NAVER_ID, "X-Naver-Client-Secret": NAVER_SECRET}
-    try:
-        res = requests.get(url, headers=headers)
-        return res.json().get('items', [])
-    except:
-        return []
-
-# 감시 키워드
-keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
-
-st.success("✅ 현재 텔레그램 알람이 꺼져 있습니다. 앱 화면에서만 뉴스를 확인하세요.")
-st.info(f"⏱️ 마지막 확인 시각: {datetime.now().strftime('%H:%M:%S')}")
-
-for kw in keywords:
-    st.subheader(f"🔍 {kw}")
-    items = get_news(kw)
-    if items:
-        for item in items:
-            title = item['title'].replace('<b>','').replace('</b>','').replace('&quot;', '"')
-            st.markdown(f"• [{title}]({item['link']})")
-    else:
-        st.write("최신 뉴스가 없습니다.")
-    st.divider()
+# 2. 새로고침 버튼 만들기
+if st.button('🔄 지금 뉴스 새로고침'):
+    keywords = ["현정은", "현대엘리베이터", "현대무벡스"] #
+    
+    for kw in keywords:
+        st.subheader(f"📍 {kw} 관련 소식")
+        n_news, g_news = fetch_all_news(kw)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("**🔹 네이버 뉴스**")
+            for n in n_news:
+                title = n['title'].replace('<b>','').replace('</b>','').replace('&quot;', '"')
+                st.caption(f"• [{title}]({n['link']})")
+        
+        with col2:
+            st.markdown("**🔹 구글 뉴스**")
+            for g in g_news:
+                st.caption(f"• [{g.title}]({g.link})")
+        st.divider()
+else:
+    st.info("위의 버튼을 누르면 실시간 뉴스를 가져옵니다.")
