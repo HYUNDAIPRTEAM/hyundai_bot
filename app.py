@@ -10,92 +10,91 @@ import os
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 🔹 폰트 로딩 함수
+# 🔹 폰트 로드 함수 (경로 체크 포함)
 def load_font(font_file):
-    with open(font_file, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+    if os.path.exists(font_file):
+        with open(font_file, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return None
 
-# 🔹 폰트 경로 (Bold + Regular 둘 다 사용 권장)
-font_regular = "NeoHyundai-Regular.woff2"
-font_bold = "NeoHyundai-Bold.woff2"
+# 🔹 폰트 파일명 (팀장님 기준)
+font_bold = "NeoHyundai_B.woff2"
+font_reg = "NeoHyundai_R.woff2"
 
-font_css = ""
-
-if os.path.exists(font_regular):
-    font_data_reg = load_font(font_regular)
-    font_css += f"""
-    @font-face {{
-        font-family: 'NeoHyundai';
-        src: url(data:font/woff2;base64,{font_data_reg}) format('woff2');
-        font-weight: 400;
-        font-style: normal;
-    }}
-    """
-
-if os.path.exists(font_bold):
-    font_data_bold = load_font(font_bold)
-    font_css += f"""
-    @font-face {{
-        font-family: 'NeoHyundai';
-        src: url(data:font/woff2;base64,{font_data_bold}) format('woff2');
-        font-weight: 700;
-        font-style: normal;
-    }}
-    """
+# 🔹 폰트 데이터 로딩
+data_b = load_font(font_bold)
+data_r = load_font(font_reg)
 
 # 🔹 CSS 적용
-st.markdown(f"""
-<style>
-{font_css}
+if data_b and data_r:
+    st.markdown(f"""
+    <style>
+    /* 1. 폰트 정의 */
+    @font-face {{
+        font-family: 'NeoHyundaiBold';
+        src: url(data:font/woff2;base64,{data_b}) format('woff2');
+        font-weight: 700;
+    }}
 
-/* 전체 기본 = Regular */
-html, body, [class*="css"], .stMarkdown {{
-    font-family: 'NeoHyundai', sans-serif !important;
-    font-weight: 400;
-}}
+    @font-face {{
+        font-family: 'NeoHyundaiReg';
+        src: url(data:font/woff2;base64,{data_r}) format('woff2');
+        font-weight: 400;
+    }}
 
-/* 🔥 제목만 Bold */
-.custom-title {{
-    font-weight: 700 !important;
-    letter-spacing: -0.03em;
-}}
+    /* 2. 전체 기본 = Regular */
+    * {{
+        font-family: 'NeoHyundaiReg', sans-serif !important;
+    }}
 
-/* UI 스타일 */
-.news-item {{
-    padding: 12px 0;
-    border-bottom: 1px solid #f2f2f2;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}}
+    /* 3. 제목만 Bold */
+    .custom-title {{
+        font-family: 'NeoHyundaiBold', sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.03em;
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+    }}
 
-.media-tag {{
-    font-size: 0.75rem;
-    color: #002c5f;
-    background-color: #f0f4f8;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-weight: 400;
-    min-width: 100px;
-    text-align: center;
-    border: 1px solid #dce6f0;
-}}
+    /* 4. UI 스타일 */
+    .news-item {{
+        padding: 12px 0;
+        border-bottom: 1px solid #f2f2f2;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }}
 
-.title-link {{
-    font-size: 1.05rem;
-    font-weight: 400;
-    color: #333;
-    text-decoration: none;
-    line-height: 1.4;
-}}
+    .media-tag {{
+        font-family: 'NeoHyundaiBold', sans-serif !important;
+        font-size: 0.75rem;
+        color: #002c5f;
+        background-color: #f0f4f8;
+        padding: 4px 12px;
+        border-radius: 4px;
+        min-width: 100px;
+        text-align: center;
+        border: 1px solid #dce6f0;
+    }}
 
-.title-link:hover {{
-    color: #002c5f;
-    text-decoration: underline;
-}}
-</style>
-""", unsafe_allow_html=True)
+    .title-link {{
+        font-family: 'NeoHyundaiReg', sans-serif !important;
+        font-size: 1.05rem;
+        font-weight: 400;
+        color: #333;
+        text-decoration: none;
+        line-height: 1.4;
+    }}
+
+    .title-link:hover {{
+        color: #002c5f;
+        text-decoration: underline;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+else:
+    st.warning("⚠️ 폰트 파일(NeoHyundai_B.woff2, NeoHyundai_R.woff2) 경로 확인 필요")
 
 # 2. 매체명 매핑
 KOR_MEDIA_DICT = {
@@ -152,7 +151,7 @@ def get_google_news(query):
 col_title, col_btn = st.columns([6, 1])
 
 with col_title:
-    st.markdown('<h1 class="custom-title">📢 현대 뉴스 실시간 브리핑</h1>', unsafe_allow_html=True)
+    st.markdown('<div class="custom-title">📢 현대 뉴스 실시간 브리핑</div>', unsafe_allow_html=True)
     st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_btn:
