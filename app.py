@@ -32,7 +32,7 @@ def get_google_news(query):
     except:
         return []
 
-# 3. 화면 디자인 설정
+# 3. 화면 디자인 설정 (현대 블루 스타일)
 st.markdown("""
     <style>
     .stTitle { color: #002c5f; font-weight: 800; }
@@ -43,7 +43,7 @@ st.markdown("""
 st.title("📢 현대 뉴스 실시간 브리핑")
 st.write(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# 4. [업데이트] 키워드 리스트: 현정은 회장님 추가
+# 4. 키워드 리스트 (현정은 회동, 현대엘리베이터, 현대무벡스)
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
@@ -56,7 +56,6 @@ for kw in keywords:
         items = get_naver_news(kw)
         if items:
             for item in items:
-                # 검색어 강조 태그 제거 후 깔끔하게 제목 표시
                 title = item['title'].replace('<b>', '').replace('</b>', '').replace('&quot;', '"')
                 st.markdown(f"**[{title}]({item['link']})**")
         else:
@@ -72,8 +71,11 @@ for kw in keywords:
             st.write("최신 뉴스가 없습니다.")
     st.divider()
 
-# 5. 사이드바 관리
+# 5. [수정 완료] 사이드바 관리 및 사용자 명칭 변경
 st.sidebar.header("관리 메뉴")
-st.sidebar.info("사용자: 현대 PR 팀장님")
+st.sidebar.info("사용자: 현대그룹 커뮤니케이션실") # 요청하신 명칭으로 수정되었습니다.
 if st.sidebar.button("지금 새로고침"):
     st.rerun()
+
+st.sidebar.divider()
+st.sidebar.caption("본 브리핑은 그룹 CI 및 대외 이미지 관리를 위해 실시간으로 업데이트됩니다.")
