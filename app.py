@@ -41,13 +41,13 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.title("📢 현대 뉴스 실시간 브리핑")
-st.write(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 # 4. 키워드 리스트 (현정은, 현대엘리베이터, 현대무벡스)
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
-    st.subheader(f"🔍 {kw} 관련 소식")
+    st.subheader(f"🔍 {kw} 실시간 동향")
     
     col1, col2 = st.columns(2)
     
@@ -56,7 +56,7 @@ for kw in keywords:
         items = get_naver_news(kw)
         if items:
             for item in items:
-                title = item['title'].replace('<b>', '').replace('</b>', '').replace('&quot;', '"')
+                title = item['title'].replace('<b>', '').replace('</b>', '').replace('&quot;', '"').replace('&amp;', '&')
                 st.markdown(f"**[{title}]({item['link']})**")
         else:
             st.write("최신 뉴스가 없습니다.")
@@ -71,12 +71,12 @@ for kw in keywords:
             st.write("최신 뉴스가 없습니다.")
     st.divider()
 
-# 5. [수정 완료] 사이드바 관리 및 하단 설명 변경
+# 5. [수정 완료] 사이드바 관리 및 시스템 명칭 변경
 st.sidebar.header("관리 메뉴")
 st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"):
     st.rerun()
 
 st.sidebar.divider()
-# 요청하신 문구로 수정되었습니다.
-st.sidebar.caption("네이버와 구글 뉴스 실시간 모니터링 시스템")
+# 요청하신 '네이버/구글' 표기로 수정되었습니다.
+st.sidebar.caption("네이버/구글 뉴스 실시간 모니터링 시스템")
