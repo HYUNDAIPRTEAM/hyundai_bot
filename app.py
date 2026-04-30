@@ -43,7 +43,7 @@ st.markdown("""
 st.title("📢 현대 뉴스 실시간 브리핑")
 st.write(f"마지막 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# 4. 키워드 리스트 (현정은 회동, 현대엘리베이터, 현대무벡스)
+# 4. 키워드 리스트 (현정은, 현대엘리베이터, 현대무벡스)
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
@@ -71,11 +71,12 @@ for kw in keywords:
             st.write("최신 뉴스가 없습니다.")
     st.divider()
 
-# 5. [수정 완료] 사이드바 관리 및 사용자 명칭 변경
+# 5. [수정 완료] 사이드바 관리 및 하단 설명 변경
 st.sidebar.header("관리 메뉴")
-st.sidebar.info("사용자: 현대그룹 커뮤니케이션실") # 요청하신 명칭으로 수정되었습니다.
+st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"):
     st.rerun()
 
 st.sidebar.divider()
-st.sidebar.caption("본 브리핑은 그룹 CI 및 대외 이미지 관리를 위해 실시간으로 업데이트됩니다.")
+# 요청하신 문구로 수정되었습니다.
+st.sidebar.caption("네이버와 구글 뉴스 실시간 모니터링 시스템")
