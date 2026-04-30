@@ -6,7 +6,8 @@ import base64
 import os
 
 # 1. 시스템 및 스타일 설정
-st.set_page_config(page_title="네이버/구글 실시간 모니터링 시스템", page_icon="🗞️", layout="wide")
+# 제목 변경 반영: 네이버/구글 실시간 모니터링
+st.set_page_config(page_title="네이버/구글 실시간 모니터링", page_icon="🗞️", layout="wide")
 
 # 매체명 매핑 사전 (기존 유지)
 MEDIA_MAP = {
@@ -47,18 +48,16 @@ def get_naver_news(query):
         return res.json().get('items', [])
     except: return []
 
-# 3. 화면 UI 레이아웃 및 겹침 방지 CSS
+# 3. 화면 UI 레이아웃 및 CSS
 st.markdown("""
     <style>
-    /* 제목 컬러 및 가시성 고정 */
     .custom-title { color: #002c5f !important; font-weight: 800; font-size: 2.2rem; margin-bottom: 5px; }
     
-    /* [긴급] arrow_down 텍스트 겹침 완전 제거 */
+    /* arrow_down 텍스트 겹침 방지 */
     [data-testid="stExpander"] svg { display: none !important; }
     div[class*="st-emotion-cache"] span { color: transparent !important; font-size: 0px !important; line-height: 0 !important; }
     div[data-testid="stExpander"] summary p { color: #333 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
 
-    /* 뉴스 카드 디자인 */
     .news-card { padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 15px; min-height: 55px; }
     .m-tag { 
         min-width: 100px; text-align: center; font-size: 0.75rem; 
@@ -68,25 +67,24 @@ st.markdown("""
     .n-link { font-size: 1rem; font-weight: 500; color: #333; text-decoration: none; line-height: 1.4; }
     .n-link:hover { color: #002c5f; text-decoration: underline; }
     
-    /* 버튼 텍스트 가시성 확보 */
     .stButton>button { background-color: #002c5f !important; color: white !important; border-radius: 4px; border: none; height: 45px; width: 100%; }
     .stButton>button p { color: white !important; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# 레이아웃 구성: 제목과 새로고침 버튼 한 줄 배치
+# 레이아웃 구성
 st.markdown('<p style="color:#666; font-size:0.85rem; margin-bottom:0px;">사용자: 현대그룹 커뮤니케이션실</p>', unsafe_allow_html=True)
 col_t, col_b = st.columns([4, 1])
 
 with col_t:
-    # 1. 제목 변경 반영
-    st.markdown('<h1 class="custom-title">📢 네이버/구글 실시간 모니터링 시스템</h1>', unsafe_allow_html=True)
-    # 2. 최종 업데이트 시간 자동 반영 및 불필요 문구 삭제
-    st.caption(f"최종 업데이트: {datetime.now().strftime('%H:%M:%S')}")
+    # 제목 수정: 네이버/구글 실시간 모니터링
+    st.markdown('<h1 class="custom-title">📢 네이버/구글 실시간 모니터링</h1>', unsafe_allow_html=True)
+    # 실시간 시간 반영: 뉴스를 불러오는 시점의 시간 표시
+    fetch_time = datetime.now().strftime('%H:%M:%S')
+    st.caption(f"최종 업데이트: {fetch_time}")
 
 with col_b:
     st.write(" ")
-    # 3. 뉴스 새로고침 버튼 추가
     if st.button("🔄 뉴스 새로고침"):
         st.rerun()
 
@@ -95,7 +93,7 @@ keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
     with st.expander(f"🔍 {kw} 실시간 뉴스", expanded=True):
-        items = get_naver_news(kw)
+        items = get_naver_news(kw) # 여기서 뉴스를 호출함과 동시에 위에서 fetch_time이 갱신됩니다.
         if items:
             col1, col2 = st.columns(2)
             for i, item in enumerate(items):
