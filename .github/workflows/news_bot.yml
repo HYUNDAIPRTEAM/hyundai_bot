@@ -2,21 +2,21 @@ name: Hyundai News Bot
 
 on:
   schedule:
-    # 한국 시간(KST): 오전 6시, 7시, 오후 5시, 7시
+    # 한국 시간 기준: 오전 6시, 7시, 오후 5시, 7시 실행
     - cron: '0 21,22,8,10 * * *'
-  workflow_dispatch: 
+  workflow_dispatch:  # 이 줄이 있어야 [Run workflow] 버튼이 생깁니다!
 
 jobs:
   run_bot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v3에서 v4로 업그레이드!
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # v4에서 v5로 업그레이드!
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11' # 파이썬도 최신 버전으로!
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -24,8 +24,11 @@ jobs:
 
       - name: Run news bot
         env:
+          # 금고(Secrets)에 등록하신 이름과 똑같아야 합니다
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_SECRET: ${{ secrets.NAVER_SECRET }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          # Node.js 24 환경을 강제로 사용하도록 설정
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
         run: python bot.py
