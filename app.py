@@ -8,7 +8,7 @@ import base64
 import os
 
 # 1. 시스템 설정
-st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
+st.set_page_config(page_title="HYUNDAI NEWS MONITORING", page_icon="🗞️", layout="wide")
 
 # 🔹 폰트 로드 함수
 def load_font(font_file):
@@ -47,7 +47,7 @@ if data_b and data_r:
         font-family: 'NeoHyundaiReg', sans-serif !important;
     }}
 
-    /* 제목만 Bold */
+    /* 제목 Bold */
     .custom-title {{
         font-family: 'NeoHyundaiBold', sans-serif !important;
         font-weight: 700 !important;
@@ -56,7 +56,7 @@ if data_b and data_r:
         margin-bottom: 10px;
     }}
 
-    /* 뉴스 UI */
+    /* 뉴스 카드 */
     .news-item {{
         padding: 12px 0;
         border-bottom: 1px solid #f2f2f2;
@@ -93,7 +93,7 @@ if data_b and data_r:
     </style>
     """, unsafe_allow_html=True)
 else:
-    st.warning("⚠️ 폰트 파일(NeoHyundai_B.woff2, NeoHyundai_R.woff2) 경로 확인 필요")
+    st.warning("⚠️ 폰트 파일(NeoHyundai_B.woff2, NeoHyundai_R.woff2) 확인 필요")
 
 # 🔥 최초 실행 시 업데이트 시간 저장
 if "last_update" not in st.session_state:
@@ -154,14 +154,13 @@ def get_google_news(query):
 col_title, col_btn = st.columns([6, 1])
 
 with col_title:
-    st.markdown('<div class="custom-title">📢 현대 뉴스 실시간 브리핑</div>', unsafe_allow_html=True)
+    st.markdown('<div class="custom-title">📢 HYUNDAI NEWS MONITORING</div>', unsafe_allow_html=True)
     st.write(f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_btn:
     st.write("")
     if st.button("🔄 뉴스 새로고침", use_container_width=True):
         st.session_state.last_update = datetime.now()
-        st.rerun()
 
 # 4. 키워드
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
