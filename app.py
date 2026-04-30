@@ -8,8 +8,7 @@ import re
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 매체명 매핑 딕셔너리 (도메인 포함 키워드 중심)
-# 이미지에서 확인된 'v.daum.net' 등 모든 예외 사례를 반영했습니다.
+# 매체명 매핑 딕셔너리
 KOR_MEDIA_DICT = {
     'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'woman.chosun': '여성조선',
     'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스',
@@ -21,22 +20,20 @@ KOR_MEDIA_DICT = {
 }
 
 def clean_text(text):
-    if not text: return ""
+    if not text:
+        return ""
     clean = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
     return re.sub(clean, '', text).strip()
 
 def get_kor_media_name(link):
     link = link.lower()
-    # 1순위: 지정된 딕셔너리에서 매핑
     for key, kor_name in KOR_MEDIA_DICT.items():
         if key in link:
             return kor_name
     
-    # 2순위: 도메인 추출 후 첫 글자만 대문자로 하거나 '뉴스' 처리
     match = re.search(r'https?://(?:www\.)?([^/.]+)', link)
     if match:
         domain = match.group(1)
-        # 영문 도메인이 너무 지저분하게 나오는 것을 방지
         if len(domain) > 2:
             return domain.upper()
     return "뉴스"
@@ -51,16 +48,18 @@ def get_naver_news(query):
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
-    except: return []
+    except:
+        return []
 
 def get_google_news(query):
     try:
         url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
         d = feedparser.parse(url)
         return d.entries[:5]
-    except: return []
+    except:
+        return []
 
-# 3. 디자인 스타일링 (미니멀리즘)
+# 3. 디자인 스타일링
 st.markdown("""
     <style>
     .stTitle { color: #002c5f; font-weight: 800; margin-bottom: 25px; }
@@ -75,8 +74,17 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("📢 현대 뉴스 실시간 브리핑")
-st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+# 🔹 제목 + 새로고침 버튼
+col_title, col_btn = st.columns([6, 1])
+
+with col_title:
+    st.title("📢 현대 뉴스 실시간 브리핑")
+    st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+with col_btn:
+    st.write("")
+    if st.button("🔄 새로고침", use_container_width=True):
+        st.rerun()
 
 # 4. 키워드 모니터링
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
@@ -90,7 +98,7 @@ for kw in keywords:
         items = get_naver_news(kw)
         for item in items:
             raw_title = clean_text(item['title'])
-            kor_media = get_kor_media_name(item['originallink']) # 보강된 로직
+            kor_media = get_kor_media_name(item['originallink'])
             
             st.markdown(f'''
             <div class="news-item">
@@ -112,4 +120,5 @@ for kw in keywords:
                 <a href="{entry.link}" target="_blank" class="title-link">{title_part}</a>
             </div>
             ''', unsafe_allow_html=True)
+
     st.divider()
