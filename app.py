@@ -4,11 +4,100 @@ import feedparser
 from urllib.parse import quote
 from datetime import datetime
 import re
+import base64
+import os
 
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 매체명 매핑 딕셔너리
+# 🔹 폰트 로딩 함수
+def load_font(font_file):
+    with open(font_file, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+# 🔹 폰트 경로 (Bold + Regular 둘 다 사용 권장)
+font_regular = "NeoHyundai-Regular.woff2"
+font_bold = "NeoHyundai-Bold.woff2"
+
+font_css = ""
+
+if os.path.exists(font_regular):
+    font_data_reg = load_font(font_regular)
+    font_css += f"""
+    @font-face {{
+        font-family: 'NeoHyundai';
+        src: url(data:font/woff2;base64,{font_data_reg}) format('woff2');
+        font-weight: 400;
+        font-style: normal;
+    }}
+    """
+
+if os.path.exists(font_bold):
+    font_data_bold = load_font(font_bold)
+    font_css += f"""
+    @font-face {{
+        font-family: 'NeoHyundai';
+        src: url(data:font/woff2;base64,{font_data_bold}) format('woff2');
+        font-weight: 700;
+        font-style: normal;
+    }}
+    """
+
+# 🔹 CSS 적용
+st.markdown(f"""
+<style>
+{font_css}
+
+/* 전체 기본 = Regular */
+html, body, [class*="css"], .stMarkdown {{
+    font-family: 'NeoHyundai', sans-serif !important;
+    font-weight: 400;
+}}
+
+/* 🔥 제목만 Bold */
+.custom-title {{
+    font-weight: 700 !important;
+    letter-spacing: -0.03em;
+}}
+
+/* UI 스타일 */
+.news-item {{
+    padding: 12px 0;
+    border-bottom: 1px solid #f2f2f2;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}}
+
+.media-tag {{
+    font-size: 0.75rem;
+    color: #002c5f;
+    background-color: #f0f4f8;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 400;
+    min-width: 100px;
+    text-align: center;
+    border: 1px solid #dce6f0;
+}}
+
+.title-link {{
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: #333;
+    text-decoration: none;
+    line-height: 1.4;
+}}
+
+.title-link:hover {{
+    color: #002c5f;
+    text-decoration: underline;
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# 2. 매체명 매핑
 KOR_MEDIA_DICT = {
     'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'woman.chosun': '여성조선',
     'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스',
@@ -38,7 +127,7 @@ def get_kor_media_name(link):
             return domain.upper()
     return "뉴스"
 
-# 2. 뉴스 수집 로직
+# 3. 뉴스 수집
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {
@@ -59,26 +148,11 @@ def get_google_news(query):
     except:
         return []
 
-# 3. 디자인 스타일링
-st.markdown("""
-    <style>
-    .stTitle { color: #002c5f; font-weight: 800; margin-bottom: 25px; }
-    .news-item { padding: 12px 0; border-bottom: 1px solid #f2f2f2; display: flex; align-items: center; gap: 15px; }
-    .media-tag { 
-        font-size: 0.75rem; color: #002c5f; background-color: #f0f4f8; 
-        padding: 4px 12px; border-radius: 4px; font-weight: 700; white-space: nowrap;
-        min-width: 100px; text-align: center; border: 1px solid #dce6f0;
-    }
-    .title-link { font-size: 1.05rem; font-weight: 500; color: #333; text-decoration: none; line-height: 1.4; }
-    .title-link:hover { color: #002c5f; text-decoration: underline; }
-    </style>
-    """, unsafe_allow_html=True)
-
 # 🔹 제목 + 새로고침 버튼
 col_title, col_btn = st.columns([6, 1])
 
 with col_title:
-    st.title("📢 현대 뉴스 실시간 브리핑")
+    st.markdown('<h1 class="custom-title">📢 현대 뉴스 실시간 브리핑</h1>', unsafe_allow_html=True)
     st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 with col_btn:
@@ -86,7 +160,7 @@ with col_btn:
     if st.button("🔄 새로고침", use_container_width=True):
         st.rerun()
 
-# 4. 키워드 모니터링
+# 4. 키워드
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
