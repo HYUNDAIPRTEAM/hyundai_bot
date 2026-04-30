@@ -17,7 +17,6 @@ def clean_text(text):
 def get_first_sentence(text):
     text = clean_text(text)
     if not text: return ""
-    # 마침표를 기준으로 첫 번째 문장만 추출
     sentence = text.split('.')[0]
     return sentence + "." if len(sentence) > 5 else ""
 
@@ -40,34 +39,34 @@ def get_google_news(query):
         return d.entries[:5]
     except: return []
 
-# 3. 디자인 스타일링 (매체명 강조형)
+# 3. 디자인 스타일링
 st.markdown("""
     <style>
     .stTitle { color: #002c5f; font-weight: 800; }
     .news-item { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     .header-line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .media-tag { 
-        font-size: 0.75rem; 
+        font-size: 0.72rem; 
         color: #ffffff; 
         background-color: #002c5f; 
         padding: 2px 8px; 
         border-radius: 3px; 
         font-weight: 600;
         white-space: nowrap;
+        text-transform: uppercase;
     }
     .title-link { 
-        font-size: 1.05rem; 
+        font-size: 1.02rem; 
         font-weight: 700; 
         color: #111; 
         text-decoration: none; 
         line-height: 1.3;
     }
     .first-sentence { 
-        font-size: 0.9rem; 
+        font-size: 0.88rem; 
         color: #666; 
         line-height: 1.5; 
         margin-top: 4px;
-        padding-left: 2px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -75,7 +74,7 @@ st.markdown("""
 st.title("📢 현대 뉴스 실시간 브리핑")
 st.write(f"업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# 4. 키워드 모니터링 (현정은, 현대엘리베이터, 현대무벡스)
+# 4. 키워드 모니터링
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
@@ -86,14 +85,18 @@ for kw in keywords:
         st.caption("🔹 네이버 뉴스")
         items = get_naver_news(kw)
         for item in items:
-            title = clean_text(item['title'])
+            raw_title = clean_text(item['title'])
+            # 링크에서 매체사 도메인 추출 시도 (예: naver.com, yna.co.kr 등)
+            media_match = re.search(r'https?://(?:www\.)?([^/]+)', item['originallink'])
+            media_name = media_match.group(1).split('.')[0] if media_match else "NAVER"
+            
             first_s = get_first_sentence(item['description'])
-            # 네이버 API는 매체명을 제목 끝에 붙여주는 경우가 많으므로 기본값 설정
+            
             st.markdown(f'''
             <div class="news-item">
                 <div class="header-line">
-                    <span class="media-tag">NEWS</span>
-                    <a href="{item["link"]}" target="_blank" class="title-link">{title}</a>
+                    <span class="media-tag">{media_name}</span>
+                    <a href="{item["link"]}" target="_blank" class="title-link">{raw_title}</a>
                 </div>
                 <div class="first-sentence">{first_s}</div>
             </div>
@@ -104,14 +107,12 @@ for kw in keywords:
         entries = get_google_news(kw)
         for entry in entries:
             raw_t = clean_text(entry.title)
-            # 구글 뉴스 포맷 '제목 - 매체명' 분리
             if " - " in raw_t:
                 title_part, media_part = raw_t.rsplit(" - ", 1)
             else:
-                title_part, media_part = raw_t, "Google"
+                title_part, media_part = raw_t, "GOOGLE"
             
             first_s = get_first_sentence(entry.summary if 'summary' in entry else "")
-            # 제목 중복 필터링
             display_s = first_s if len(first_s) > 10 and title_part[:10] not in first_s else ""
             
             st.markdown(f'''
@@ -128,4 +129,4 @@ for kw in keywords:
 # 5. 사이드바
 st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"): st.rerun()
-st.sidebar.caption("네이버/구글 실시간 뉴스 모니터링")
+st.sidebar.caption("네이버/구글 뉴스 모니터링 시스템 v2.1")
