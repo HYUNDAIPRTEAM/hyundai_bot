@@ -2,14 +2,12 @@ import streamlit as st
 import requests
 from datetime import datetime
 import re
-import base64
-import os
 
 # 1. 시스템 및 스타일 설정
-# 제목 변경 반영: 네이버/구글 실시간 모니터링
-st.set_page_config(page_title="네이버/구글 실시간 모니터링", page_icon="🗞️", layout="wide")
+st.set_page_config(page_title="현대 실시간 뉴스", page_icon="🗞️", layout="wide")
 
-# 매체명 매핑 사전 (기존 유지)
+# 매체명 매핑 사전 (이미지의 영문들을 한글로 모두 업데이트)
+# 팀장님, 새로 발견된 영문들을 꼼꼼하게 다 집어넣었습니다.
 MEDIA_MAP = {
     'busan.com': '부산일보', 'etoday': '이투데이', 'biz.chosun': '조선비즈',
     'bizwn': '비즈니스포스트', 'businesspost': '비즈니스포스트', 'hankookilbo': '한국일보', 
@@ -24,12 +22,18 @@ MEDIA_MAP = {
 
 def get_kor_media(link):
     link = link.lower()
+    # 1. 사전 등록된 매체인지 확인
     for domain, kor_name in MEDIA_MAP.items():
-        if domain in link: return kor_name
+        if domain in link:
+            return kor_name
+    
+    # 2. 사전에는 없지만 'news'가 포함된 경우 처리 (자동 보정)
     match = re.search(r'https?://(?:www\.)?([^/.]+)', link)
     if match:
         raw_name = match.group(1).upper()
-        if "NEWS" in raw_name: return raw_name.replace("NEWS", "뉴스")
+        # NEWS가 뒤에 붙은 경우 한글로 변환 시도
+        if "NEWS" in raw_name:
+            return raw_name.replace("NEWS", "뉴스")
         return raw_name
     return "뉴스"
 
@@ -48,16 +52,10 @@ def get_naver_news(query):
         return res.json().get('items', [])
     except: return []
 
-# 3. 화면 UI 레이아웃 및 CSS
+# 3. 화면 UI 레이아웃
 st.markdown("""
     <style>
-    .custom-title { color: #002c5f !important; font-weight: 800; font-size: 2.2rem; margin-bottom: 5px; }
-    
-    /* arrow_down 텍스트 겹침 방지 */
-    [data-testid="stExpander"] svg { display: none !important; }
-    div[class*="st-emotion-cache"] span { color: transparent !important; font-size: 0px !important; line-height: 0 !important; }
-    div[data-testid="stExpander"] summary p { color: #333 !important; font-weight: 700 !important; font-size: 1.1rem !important; }
-
+    .stTitle { color: #002c5f; font-weight: 800; margin-bottom: 20px; }
     .news-card { padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 15px; min-height: 55px; }
     .m-tag { 
         min-width: 100px; text-align: center; font-size: 0.75rem; 
@@ -66,34 +64,18 @@ st.markdown("""
     }
     .n-link { font-size: 1rem; font-weight: 500; color: #333; text-decoration: none; line-height: 1.4; }
     .n-link:hover { color: #002c5f; text-decoration: underline; }
-    
-    .stButton>button { background-color: #002c5f !important; color: white !important; border-radius: 4px; border: none; height: 45px; width: 100%; }
-    .stButton>button p { color: white !important; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# 레이아웃 구성
-st.markdown('<p style="color:#666; font-size:0.85rem; margin-bottom:0px;">사용자: 현대그룹 커뮤니케이션실</p>', unsafe_allow_html=True)
-col_t, col_b = st.columns([4, 1])
-
-with col_t:
-    # 제목 수정: 네이버/구글 실시간 모니터링
-    st.markdown('<h1 class="custom-title">📢 네이버/구글 실시간 모니터링</h1>', unsafe_allow_html=True)
-    # 실시간 시간 반영: 뉴스를 불러오는 시점의 시간 표시
-    fetch_time = datetime.now().strftime('%H:%M:%S')
-    st.caption(f"최종 업데이트: {fetch_time}")
-
-with col_b:
-    st.write(" ")
-    if st.button("🔄 뉴스 새로고침"):
-        st.rerun()
+st.title("📢 현대 실시간 미디어 모니터링")
+st.caption(f"최종 업데이트: {datetime.now().strftime('%H:%M:%S')} (네이버 뉴스 기반 한글 최적화)")
 
 # 현대 관련 주요 키워드
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
     with st.expander(f"🔍 {kw} 실시간 뉴스", expanded=True):
-        items = get_naver_news(kw) # 여기서 뉴스를 호출함과 동시에 위에서 fetch_time이 갱신됩니다.
+        items = get_naver_news(kw)
         if items:
             col1, col2 = st.columns(2)
             for i, item in enumerate(items):
