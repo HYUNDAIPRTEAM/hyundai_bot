@@ -5,91 +5,91 @@ import os
 from datetime import datetime
 import re
 
-# 1. 시스템 설정 및 디자인 스타일 (가시성 100% 보장)
-st.set_page_config(page_title="네이버/구글 실시간 모니터링 시스템", page_icon="🗞️", layout="wide")
+# 1. 시스템 설정 및 폰트 주입
+st.set_page_config(page_title="현대 실시간 미디어 모니터링", page_icon="🗞️", layout="wide")
 
-def inject_style():
-    base_path = os.path.dirname(os.path.abspath(__file__))
+def get_font_and_style():
+    base_path = os.path.dirname(__file__)
     font_b = os.path.join(base_path, "NeoHyundai_B.woff2")
+    font_r = os.path.join(base_path, "NeoHyundai_R.woff2")
     
     css_content = ""
     if os.path.exists(font_b):
         with open(font_b, "rb") as f:
             b64_b = base64.b64encode(f.read()).decode()
         css_content += f"@font-face {{ font-family: 'NeoHyundaiBold'; src: url(data:font/woff2;base64,{b64_b}) format('woff2'); font-weight: bold; }}"
+    if os.path.exists(font_r):
+        with open(font_r, "rb") as f:
+            b64_r = base64.b64encode(f.read()).decode()
+        css_content += f"@font-face {{ font-family: 'NeoHyundaiReg'; src: url(data:font/woff2;base64,{b64_r}) format('woff2'); font-weight: normal; }}"
 
     return f"""
     <style>
     {css_content}
+    * {{ font-family: 'NeoHyundaiReg', sans-serif !important; }}
+    .stTitle, h1, h2, h3, .m-tag, b, strong, .stButton>button {{ font-family: 'NeoHyundaiBold', sans-serif !important; letter-spacing: -0.03em !important; }}
     
-    /* [긴급] 제목 가시성 확보: 배경색과 관계없이 현대 블루(#002c5f) 고정 */
-    .header-box {{
-        margin-top: -30px;
-        margin-bottom: 10px;
+    /* 사용자 정보 및 시스템 타이틀 스타일 */
+    .user-info {{ color: #666; font-size: 0.9rem; margin-bottom: 10px; }}
+    .system-title {{ color: #002c5f; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; border-left: 4px solid #002c5f; padding-left: 12px; }}
+    
+    /* 뉴스 카드 디자인 */
+    .news-card {{ padding: 13px 5px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 15px; }}
+    .m-tag {{ 
+        min-width: 95px; text-align: center; font-size: 0.72rem; 
+        background: #f1f6fa; color: #002c5f; padding: 4px 10px; 
+        border-radius: 3px; border: 1px solid #dce6f0; line-height: 1.2;
     }}
-    .main-title {{
-        font-family: 'NeoHyundaiBold', sans-serif !important;
-        color: #002c5f !important;
-        font-size: 2.3rem !important;
-        font-weight: bold !important;
-        line-height: 1.2 !important;
-        margin: 0 !important;
-        display: block !important;
-    }}
-
-    /* 버튼 내 '뉴스 새로고침' 글자색 화이트 강제 고정 */
-    .stButton>button {{
-        background-color: #002c5f !important;
-        border: none !important;
-        border-radius: 4px !important;
-        height: 48px !important;
-        width: 100% !important;
-    }}
-    .stButton>button div p {{
-        color: #ffffff !important; 
-        font-family: 'NeoHyundaiBold' !important;
-        font-size: 1rem !important;
-        margin: 0 !important;
-    }}
-
-    /* UI 디테일 및 잔상 제거 */
-    .system-sub-title {{ 
-        color: #002c5f !important; font-size: 1.1rem; 
-        border-left: 5px solid #002c5f; padding-left: 15px; margin-top: 15px;
-    }}
-    .user-info {{ color: #666 !important; font-size: 0.85rem; margin-bottom: 5px; }}
-    [data-testid="stExpander"] svg {{ display: none !important; }}
-    div[class*="st-emotion-cache"] span {{ color: transparent !important; font-size: 0px !important; }}
+    .n-link {{ font-size: 1.02rem; color: #333; text-decoration: none; word-break: keep-all; }}
+    .n-link:hover {{ color: #002c5f; text-decoration: underline; }}
+    
+    /* 아이콘 겹침 방지 */
+    .st-emotion-cache-p5msec {{ display: flex; align-items: center; gap: 8px; color: transparent; }}
     </style>
     """
 
-st.markdown(inject_style(), unsafe_allow_html=True)
+st.markdown(get_font_and_style(), unsafe_allow_html=True)
 
-# 2. 뉴스 수집 로직 (기존 API 유지)
+# 2. 데이터 처리 함수 (기존 로직 유지)
+MEDIA_MAP = {
+    'busan.com': '부산일보', 'etoday': '이투데이', 'biz.chosun': '조선비즈',
+    'bizwn': '비즈니스포스트', 'businesspost': '비즈니스포스트', 'hankookilbo': '한국일보',
+    'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스',
+    'sedaily': '서울경제', 'edaily': '이데일리', 'mt.co.kr': '머니투데이',
+    'heraldcorp': '헤럴드경제', 'news1.kr': '뉴스1', 'newsis': '뉴시스'
+}
+
+def get_kor_media(link):
+    link = link.lower()
+    for domain, kor_name in MEDIA_MAP.items():
+        if domain in link: return kor_name
+    match = re.search(r'https?://(?:www\.)?([^/.]+)', link)
+    return match.group(1).upper() if match else "뉴스"
+
+def clean_text(text):
+    return re.sub('<.*?>|&([a-z0-9]+|#[0-9]{1,6});', '', text).strip()
+
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=10&sort=date"
-    headers = {
-        "X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""),
-        "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")
-    }
+    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
     except: return []
 
-# 3. 레이아웃 (제목과 버튼 한 줄 배치)
-st.markdown('<p class="user-info">사용자: 현대그룹 커뮤니케이션실</p>', unsafe_allow_html=True)
-
+# 3. UI 레이아웃 구성
+# 상단 헤더 영역
 col_title, col_btn = st.columns([4, 1])
 
 with col_title:
-    # <h1> 태그로 제목 가시성 확보
-    st.markdown('<div class="header-box"><h1 class="main-title">📢 네이버/구글 실시간 모니터링 시스템</h1></div>', unsafe_allow_html=True)
-    st.markdown('<p class="system-sub-title">현대그룹 커뮤니케이션실 뉴스룸</p>', unsafe_allow_html=True)
+    st.markdown('<p class="user-info">사용자: 현대그룹 커뮤니케이션실</p>', unsafe_allow_html=True)
+    st.title("📢 현대 실시간 미디어 모니터링")
+    st.markdown('<p class="system-title">네이버/구글 실시간 모니터링 시스템</p>', unsafe_allow_html=True)
 
 with col_btn:
-    st.write("##") # 세로 위치 조절
-    if st.button("🔄 뉴스 새로고침"):
+    st.write("") # 간격 조정
+    st.write("")
+    if st.button("🔄 뉴스 모니터링 (새로고침)"):
         st.rerun()
 
 st.caption(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -102,12 +102,14 @@ for kw in keywords:
     with st.expander(f"{kw} 실시간 뉴스", expanded=True):
         items = get_naver_news(kw)
         if items:
-            for item in items[:5]:
-                clean_title = re.sub('<.*?>|&([a-z0-9]+|#[0-9]{1,6});', '', item['title'])
-                st.markdown(f'''
-                <div style="padding:10px 0; border-bottom:1px solid #f2f2f2;">
-                    <a href="{item['link']}" target="_blank" style="color:#333; text-decoration:none; font-size:1.02rem;">
-                        <b>[NEWS]</b> {clean_title}
-                    </a>
-                </div>
-                ''', unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            for i, item in enumerate(items):
+                target_col = c1 if i < 5 else c2
+                m_name = get_kor_media(item['originallink'])
+                with target_col:
+                    st.markdown(f'''
+                    <div class="news-card">
+                        <div class="m-tag">{m_name}</div>
+                        <a href="{item['link']}" target="_blank" class="n-link">{clean_text(item['title'])}</a>
+                    </div>
+                    ''', unsafe_allow_html=True)
