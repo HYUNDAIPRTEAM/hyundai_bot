@@ -8,18 +8,17 @@ import re
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 매체명 매핑 사전 (포함 여부 확인용)
-# 팀장님, 자주 노출되는 매체들을 우선적으로 배치했습니다.
+# 매체명 매핑 리스트 (팀장님을 위해 경제지 및 주요 일간지 대폭 보강)
 KOR_MEDIA_LIST = [
-    ('yna', '연합뉴스'), ('hankyung', '한국경제'), ('mk.co.kr', '매일경제'), 
-    ('chosun', '조선일보'), ('donga', '동아일보'), ('joins', '중앙일보'), 
-    ('hani', '한겨레'), ('khan', '경향신문'), ('sedaily', '서울경제'), 
-    ('edaily', '이데일리'), ('mt.co.kr', '머니투데이'), ('heraldcorp', '헤럴드경제'),
-    ('newsis', '뉴시스'), ('news1', '뉴스1'), ('sbs', 'SBS'), ('kbs', 'KBS'), 
-    ('mbc', 'MBC'), ('ytn', 'YTN'), ('etnews', '전자신문'), ('segye', '세계일보'), 
-    ('seoul', '서울신문'), ('munhwa', '문화일보'), ('fnnews', '파이낸셜뉴스'), 
-    ('ajunews', '아주경제'), ('kmib', '국민일보'), ('moneyis', '머니S'),
-    ('bizwatch', '비즈워치'), ('digitaltimes', '디지털타임스')
+    ('yna.co.kr', '연합뉴스'), ('hankyung.com', '한국경제'), ('mk.co.kr', '매일경제'), 
+    ('chosun.com', '조선일보'), ('donga.com', '동아일보'), ('joins.com', '중앙일보'), 
+    ('hani.co.kr', '한겨레'), ('khan.co.kr', '경향신문'), ('sedaily.com', '서울경제'), 
+    ('edaily.co.kr', '이데일리'), ('mt.co.kr', '머니투데이'), ('heraldcorp.com', '헤럴드경제'),
+    ('newsis.com', '뉴시스'), ('news1.kr', '뉴스1'), ('sbs.co.kr', 'SBS'), 
+    ('kbs.co.kr', 'KBS'), ('mbc.co.kr', 'MBC'), ('ytn.co.kr', 'YTN'), 
+    ('etnews.com', '전자신문'), ('segye.com', '세계일보'), ('seoul.co.kr', '서울신문'), 
+    ('munhwa.com', '문화일보'), ('fnnews.com', '파이낸셜뉴스'), ('ajunews.com', '아주경제'), 
+    ('kmib.co.kr', '국민일보'), ('bizwatch.co.kr', '비즈워치'), ('moneyis.co.kr', '머니S')
 ]
 
 def clean_text(text):
@@ -27,13 +26,12 @@ def clean_text(text):
     clean = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
     return re.sub(clean, '', text).strip()
 
-# 링크 주소를 분석해 한글 매체명을 반환하는 함수
 def get_kor_media_name(link):
     link = link.lower()
-    for eng, kor in KOR_MEDIA_LIST:
-        if eng in link:
-            return kor
-    return "뉴스" # 매핑되지 않은 경우 기본값
+    for domain, kor_name in KOR_MEDIA_LIST:
+        if domain in link:
+            return kor_name
+    return "뉴스" # 매핑되지 않은 경우
 
 # 2. 뉴스 수집 로직
 def get_naver_news(query):
@@ -84,7 +82,7 @@ for kw in keywords:
         items = get_naver_news(kw)
         for item in items:
             raw_title = clean_text(item['title'])
-            # 보강된 한글 추출 로직 적용
+            # 보강된 도메인 추출 로직으로 매체명 식별
             kor_media = get_kor_media_name(item['originallink'])
             
             st.markdown(f'''
