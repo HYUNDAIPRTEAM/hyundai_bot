@@ -2,9 +2,10 @@ name: Hyundai News Bot
 
 on:
   schedule:
-    # 정해진 시간에 자동 실행 (설정하신 시간대 반영)
-    - cron: '0 21,22,8,10 * * *'
-  # 수동 실행 버튼을 활성화합니다.
+    # 한국 시간 기준: 오전 6시, 7시, 오후 2시, 5시, 7시 실행
+    # (UTC 기준: 21, 22, 05, 08, 10시)
+    - cron: '0 21,22,5,8,10 * * *'
+  # 수동 실행 버튼 활성화
   workflow_dispatch: 
 
 jobs:
@@ -12,11 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # 최신 Node.js 24 환경을 지원하는 v5 버전 사용
+      # 최신 환경 지원 버전 사용
       - name: Checkout code
         uses: actions/checkout@v5
 
-      # 최신 환경을 지원하는 v6 버전 사용
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -28,7 +28,6 @@ jobs:
 
       - name: Run news bot
         env:
-          # 깃허브 Secrets에 넣으신 이름과 똑같아야 합니다.
           NAVER_ID: ${{ secrets.NAVER_ID }}
           NAVER_SECRET: ${{ secrets.NAVER_SECRET }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
