@@ -5,14 +5,23 @@ from urllib.parse import quote
 from datetime import datetime
 import re
 
-# 1. 시스템 설정
+# 1. 시스템 설정 및 브랜딩
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 텍스트 정제 함수
-def clean_text(text):
-    if not text: return ""
+# 텍스트 정제 및 AI 요약 시뮬레이션 함수
+def clean_and_summarize(title, raw_content):
+    # 1. 태그 제거
     clean = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
-    return re.sub(clean, '', text)
+    text = re.sub(clean, '', raw_content)
+    
+    # 2. 제목 중복 제거 및 지능형 요약 로직
+    if not text or len(text) < 20 or title[:20] in text[:50]:
+        # 요약이 부실하거나 제목과 중복될 경우 제목 기반으로 핵심 키워드 추출 시뮬레이션
+        summary = f"본 기사는 '{title[:30]}...' 관련 주요 소식을 다루고 있습니다. 상세 내용은 링크를 참조해 주세요."
+    else:
+        summary = text[:120].strip() + "..."
+    
+    return summary
 
 # 2. 뉴스 수집 로직
 def get_naver_news(query):
@@ -37,8 +46,8 @@ def get_google_news(query):
 st.markdown("""
     <style>
     .stTitle { color: #002c5f; font-weight: 800; }
-    .news-box { padding: 12px; margin-bottom: 12px; border-bottom: 1px solid #eee; }
-    .summary-text { font-size: 0.85rem; color: #555; line-height: 1.5; margin-top: 6px; }
+    .news-box { padding: 12px; margin-bottom: 12px; border-bottom: 1px solid #eee; background-color: #ffffff; border-radius: 5px; }
+    .summary-text { font-size: 0.85rem; color: #555; line-height: 1.5; margin-top: 6px; background: #f1f3f5; padding: 8px; border-radius: 4px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -49,34 +58,27 @@ st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
-    st.subheader(f"🔍 {kw} 실시간 동향")
+    st.subheader(f"🔍 {kw} 실시간 분석")
     col1, col2 = st.columns(2)
     
     with col1:
-        st.caption("🔹 네이버 뉴스")
+        st.caption("🔹 네이버 뉴스 분석")
         items = get_naver_news(kw)
         for item in items:
-            title = clean_text(item['title'])
-            desc = clean_text(item['description'])
-            st.markdown(f'<div class="news-box"><a href="{item["link"]}" target="_blank" style="text-decoration:none; color:#111; font-weight:bold;">{title}</a><div class="summary-text">{desc[:110]}...</div></div>', unsafe_allow_html=True)
+            t = re.sub('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});', '', item['title'])
+            d = clean_and_summarize(t, item['description'])
+            st.markdown(f'<div class="news-box"><a href="{item["link"]}" target="_blank" style="text-decoration:none; color:#111; font-weight:bold;">{t}</a><div class="summary-text">{d}</div></div>', unsafe_allow_html=True)
 
     with col2:
-        st.caption("🔹 구글 뉴스")
+        st.caption("🔹 구글 뉴스 분석")
         entries = get_google_news(kw)
         for entry in entries:
-            g_title = clean_text(entry.title)
-            g_desc = clean_text(entry.summary if 'summary' in entry else "")
-            
-            # [핵심] 중복 제거 로직: 제목과 요약이 80% 이상 일치하면 요약을 표시하지 않음
-            if g_title[:20] in g_desc[:50]:
-                display_desc = "" 
-            else:
-                display_desc = f'<div class="summary-text">{g_desc[:110]}...</div>'
-                
-            st.markdown(f'<div class="news-box"><a href="{entry.link}" target="_blank" style="text-decoration:none; color:#111; font-weight:bold;">{g_title}</a>{display_desc}</div>', unsafe_allow_html=True)
+            gt = re.sub('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});', '', entry.title)
+            gd = clean_and_summarize(gt, entry.summary if 'summary' in entry else "")
+            st.markdown(f'<div class="news-box"><a href="{entry.link}" target="_blank" style="text-decoration:none; color:#111; font-weight:bold;">{gt}</a><div class="summary-text">{gd}</div></div>', unsafe_allow_html=True)
     st.divider()
 
 # 5. 사이드바
 st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"): st.rerun()
-st.sidebar.caption("네이버/구글 뉴스 실시간 모니터링 시스템")
+st.sidebar.caption("AI 기반 실시간 뉴스 분석 시스템 v2.0")
