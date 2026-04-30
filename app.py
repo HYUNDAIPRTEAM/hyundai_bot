@@ -8,7 +8,7 @@ import re
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 매체명 한글 변환 사전 (더 촘촘하게 보강)
+# 매체명 한글 변환 사전
 MEDIA_MAP = {
     'yna': '연합뉴스', 'hankyung': '한국경제', 'mk': '매일경제', 'chosun': '조선일보',
     'donga': '동아일보', 'joins': '중앙일보', 'hani': '한겨레', 'khan': '경향신문',
@@ -16,8 +16,7 @@ MEDIA_MAP = {
     'bizwatch': '비즈워치', 'newsis': '뉴시스', 'news1': '뉴스1', 'sbs': 'SBS',
     'kbs': 'KBS', 'mbc': 'MBC', 'ytn': 'YTN', 'digitaltimes': '디지털타임스',
     'etnews': '전자신문', 'segye': '세계일보', 'seoul': '서울신문', 'munhwa': '문화일보',
-    'fnnews': '파이낸셜뉴스', 'ajunews': '아주경제', 'kmib': '국민일보', 'busan': '부산일보',
-    'kyeonggi': '경기일보', 'dailyian': '데일리에안', 'vop': '민중의소리', 'moneyis': '머니S'
+    'fnnews': '파이낸셜뉴스', 'ajunews': '아주경제', 'kmib': '국민일보', 'moneyis': '머니S'
 }
 
 def clean_text(text):
@@ -25,11 +24,17 @@ def clean_text(text):
     clean = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
     return re.sub(clean, '', text).strip()
 
-def get_first_sentence(text):
+def get_first_sentence(text, title=""):
     text = clean_text(text)
     if not text: return ""
+    
+    # 제목과 내용이 완전히 똑같으면 구글이 본문을 안 보낸 것이므로 안내 문구 출력
+    if title and title[:20] == text[:20]:
+        return "본문 내용은 링크를 통해 확인하실 수 있습니다."
+    
+    # 마침표 기준으로 첫 문장 추출
     sentence = text.split('.')[0]
-    return sentence + "." if len(sentence) > 5 else ""
+    return sentence + "." if len(sentence) > 5 else text[:80] + "..."
 
 # 2. 뉴스 수집 로직
 def get_naver_news(query):
@@ -61,14 +66,14 @@ st.markdown("""
         padding: 3px 10px; border-radius: 4px; font-weight: 600; white-space: nowrap;
     }
     .title-link { font-size: 1.05rem; font-weight: 700; color: #111; text-decoration: none; line-height: 1.4; }
-    .first-sentence { font-size: 0.92rem; color: #555; line-height: 1.6; margin-top: 5px; }
+    .first-sentence { font-size: 0.92rem; color: #666; line-height: 1.6; margin-top: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("📢 현대 뉴스 실시간 브리핑")
 st.write(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# 4. 모니터링 키워드 (현정은, 현대엘리베이터, 현대무벡스)
+# 4. 키워드 모니터링
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
@@ -80,11 +85,8 @@ for kw in keywords:
         items = get_naver_news(kw)
         for item in items:
             raw_title = clean_text(item['title'])
-            # 링크 주소에서 매체 식별 코드 추출
             media_match = re.search(r'https?://(?:www\.)?([^/]+)', item['originallink'])
             eng_id = media_match.group(1).split('.')[0] if media_match else ""
-            
-            # 매핑 사전에 있으면 한글로, 없으면 대문자로 표시
             media_display = MEDIA_MAP.get(eng_id, eng_id.upper() if eng_id else "뉴스")
             
             first_s = get_first_sentence(item['description'])
@@ -104,8 +106,9 @@ for kw in keywords:
         for entry in entries:
             raw_t = clean_text(entry.title)
             title_part, media_part = raw_t.rsplit(" - ", 1) if " - " in raw_t else (raw_t, "구글")
-            first_s = get_first_sentence(entry.summary if 'summary' in entry else "")
-            display_s = first_s if len(first_s) > 10 and title_part[:10] not in first_s else ""
+            
+            # 구글 뉴스 첫 문장 추출 (제목과 중복 체크 포함)
+            g_first_s = get_first_sentence(entry.summary if 'summary' in entry else "", title=title_part)
             
             st.markdown(f'''
             <div class="news-item">
@@ -113,7 +116,7 @@ for kw in keywords:
                     <span class="media-tag">{media_part}</span>
                     <a href="{entry.link}" target="_blank" class="title-link">{title_part}</a>
                 </div>
-                <div class="first-sentence">{display_s}</div>
+                <div class="first-sentence">{g_first_s}</div>
             </div>
             ''', unsafe_allow_html=True)
     st.divider()
@@ -121,4 +124,4 @@ for kw in keywords:
 # 5. 사이드바
 st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"): st.rerun()
-st.sidebar.caption("네이버/구글 실시간 뉴스 모니터링 v2.3")
+st.sidebar.caption("네이버/구글 실시간 뉴스 모니터링 v2.4")
