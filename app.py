@@ -8,7 +8,16 @@ import re
 # 1. 시스템 설정
 st.set_page_config(page_title="현대 뉴스 브리핑", page_icon="🗞️", layout="wide")
 
-# 텍스트 및 첫 문장 정제 함수
+# 매체명 한글 변환 딕셔너리 (주요 매체 추가)
+MEDIA_MAP = {
+    'yna': '연합뉴스', 'hankyung': '한국경제', 'mk': '매일경제', 'chosun': '조선일보',
+    'donga': '동아일보', 'joins': '중앙일보', 'hani': '한겨레', 'khan': '경향신문',
+    'sedaily': '서울경제', 'edaily': '이데일리', 'mt': '머니투데이', 'heraldcorp': '헤럴드경제',
+    'bizwatch': '비즈워치', 'newsis': '뉴시스', 'news1': '뉴스1', 'sbs': 'SBS',
+    'kbs': 'KBS', 'mbc': 'MBC', 'ytn': 'YTN', 'digitaltimes': '디지털타임스',
+    'etnews': '전자신문', 'segye': '세계일보', 'seoul': '서울신문', 'munhwa': '문화일보'
+}
+
 def clean_text(text):
     if not text: return ""
     clean = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
@@ -46,28 +55,11 @@ st.markdown("""
     .news-item { padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
     .header-line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .media-tag { 
-        font-size: 0.72rem; 
-        color: #ffffff; 
-        background-color: #002c5f; 
-        padding: 2px 8px; 
-        border-radius: 3px; 
-        font-weight: 600;
-        white-space: nowrap;
-        text-transform: uppercase;
+        font-size: 0.72rem; color: #ffffff; background-color: #002c5f; 
+        padding: 2px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap;
     }
-    .title-link { 
-        font-size: 1.02rem; 
-        font-weight: 700; 
-        color: #111; 
-        text-decoration: none; 
-        line-height: 1.3;
-    }
-    .first-sentence { 
-        font-size: 0.88rem; 
-        color: #666; 
-        line-height: 1.5; 
-        margin-top: 4px;
-    }
+    .title-link { font-size: 1.02rem; font-weight: 700; color: #111; text-decoration: none; line-height: 1.3; }
+    .first-sentence { font-size: 0.88rem; color: #666; line-height: 1.5; margin-top: 4px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -86,16 +78,16 @@ for kw in keywords:
         items = get_naver_news(kw)
         for item in items:
             raw_title = clean_text(item['title'])
-            # 링크에서 매체사 도메인 추출 시도 (예: naver.com, yna.co.kr 등)
+            # 도메인 추출 후 한글 매핑
             media_match = re.search(r'https?://(?:www\.)?([^/]+)', item['originallink'])
-            media_name = media_match.group(1).split('.')[0] if media_match else "NAVER"
+            eng_name = media_match.group(1).split('.')[0] if media_match else ""
+            media_display = MEDIA_MAP.get(eng_name, eng_name.upper() if eng_name else "NAVER")
             
             first_s = get_first_sentence(item['description'])
-            
             st.markdown(f'''
             <div class="news-item">
                 <div class="header-line">
-                    <span class="media-tag">{media_name}</span>
+                    <span class="media-tag">{media_display}</span>
                     <a href="{item["link"]}" target="_blank" class="title-link">{raw_title}</a>
                 </div>
                 <div class="first-sentence">{first_s}</div>
@@ -107,11 +99,7 @@ for kw in keywords:
         entries = get_google_news(kw)
         for entry in entries:
             raw_t = clean_text(entry.title)
-            if " - " in raw_t:
-                title_part, media_part = raw_t.rsplit(" - ", 1)
-            else:
-                title_part, media_part = raw_t, "GOOGLE"
-            
+            title_part, media_part = raw_t.rsplit(" - ", 1) if " - " in raw_t else (raw_t, "GOOGLE")
             first_s = get_first_sentence(entry.summary if 'summary' in entry else "")
             display_s = first_s if len(first_s) > 10 and title_part[:10] not in first_s else ""
             
@@ -129,4 +117,4 @@ for kw in keywords:
 # 5. 사이드바
 st.sidebar.info("사용자: 현대그룹 커뮤니케이션실")
 if st.sidebar.button("지금 새로고침"): st.rerun()
-st.sidebar.caption("네이버/구글 뉴스 모니터링 시스템 v2.1")
+st.sidebar.caption("네이버/구글 실시간 뉴스 분석 v2.2")
