@@ -5,85 +5,58 @@ import os
 from datetime import datetime
 import re
 
-# 1. 폰트 로드 로직 (경로 인식 및 데이터 로드 강화)
-def inject_neo_hyundai():
-    # 현재 실행 파일(app.py)의 디렉토리 기준으로 경로 설정
+# 1. 시스템 설정 및 폰트 주입
+st.set_page_config(page_title="현대 실시간 미디어 모니터링", page_icon="🗞️", layout="wide")
+
+def get_font_and_style():
     base_path = os.path.dirname(__file__)
-    font_b_path = os.path.join(base_path, "NeoHyundai_B.woff2")
-    font_r_path = os.path.join(base_path, "NeoHyundai_R.woff2")
+    font_b = os.path.join(base_path, "NeoHyundai_B.woff2")
+    font_r = os.path.join(base_path, "NeoHyundai_R.woff2")
     
-    font_face_css = ""
-    status = []
-
-    # Bold 폰트 주입
-    if os.path.exists(font_b_path):
-        with open(font_b_path, "rb") as f:
+    css_content = ""
+    if os.path.exists(font_b):
+        with open(font_b, "rb") as f:
             b64_b = base64.b64encode(f.read()).decode()
-        font_face_css += f"""
-        @font-face {{
-            font-family: 'NeoHyundaiBold';
-            src: url(data:font/woff2;base64,{b64_b}) format('woff2');
-            font-weight: bold;
-        }}"""
-        status.append("Bold OK")
-    
-    # Regular 폰트 주입
-    if os.path.exists(font_r_path):
-        with open(font_r_path, "rb") as f:
+        css_content += f"@font-face {{ font-family: 'NeoHyundaiBold'; src: url(data:font/woff2;base64,{b64_b}) format('woff2'); font-weight: bold; }}"
+    if os.path.exists(font_r):
+        with open(font_r, "rb") as f:
             b64_r = base64.b64encode(f.read()).decode()
-        font_face_css += f"""
-        @font-face {{
-            font-family: 'NeoHyundaiReg';
-            src: url(data:font/woff2;base64,{b64_r}) format('woff2');
-            font-weight: normal;
-        }}"""
-        status.append("Regular OK")
+        css_content += f"@font-face {{ font-family: 'NeoHyundaiReg'; src: url(data:font/woff2;base64,{b64_r}) format('woff2'); font-weight: normal; }}"
 
-    if not status:
-        return "<style>/* 폰트 파일이 없어 기본 폰트 적용 */</style>", "Font Files Not Found"
-
-    final_css = f"""
+    return f"""
     <style>
-    {font_face_css}
+    {css_content}
+    * {{ font-family: 'NeoHyundaiReg', sans-serif !important; }}
+    .stTitle, h1, h2, h3, .m-tag, b, strong, .stButton>button {{ font-family: 'NeoHyundaiBold', sans-serif !important; letter-spacing: -0.03em !important; }}
     
-    /* 전체 폰트 적용 순위 강제 */
-    html, body, [class*="css"], .stMarkdown, p, div, span {{
-        font-family: 'NeoHyundaiReg', 'Pretendard', sans-serif !important;
-    }}
+    /* 사용자 정보 및 시스템 타이틀 스타일 */
+    .user-info {{ color: #666; font-size: 0.9rem; margin-bottom: 10px; }}
+    .system-title {{ color: #002c5f; font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; border-left: 4px solid #002c5f; padding-left: 12px; }}
     
-    /* 제목 및 강조 (Bold) */
-    .stTitle, h1, h2, h3, .m-tag, b, strong, .stExpander {{
-        font-family: 'NeoHyundaiBold', sans-serif !important;
-        color: #002c5f !important;
-    }}
-
-    /* 뉴스 리스트 레이아웃 */
-    .news-card {{ padding: 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 15px; min-height: 55px; }}
+    /* 뉴스 카드 디자인 */
+    .news-card {{ padding: 13px 5px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; gap: 15px; }}
     .m-tag {{ 
-        min-width: 95px; text-align: center; font-size: 0.75rem; 
-        background: #f1f6fa; padding: 5px 8px; border-radius: 4px; 
-        border: 1px solid #dce6f0; color: #002c5f; font-weight: bold;
+        min-width: 95px; text-align: center; font-size: 0.72rem; 
+        background: #f1f6fa; color: #002c5f; padding: 4px 10px; 
+        border-radius: 3px; border: 1px solid #dce6f0; line-height: 1.2;
     }}
-    .n-link {{ font-size: 1rem; font-weight: 500; color: #333; text-decoration: none; line-height: 1.4; }}
+    .n-link {{ font-size: 1.02rem; color: #333; text-decoration: none; word-break: keep-all; }}
+    .n-link:hover {{ color: #002c5f; text-decoration: underline; }}
+    
+    /* 아이콘 겹침 방지 */
+    .st-emotion-cache-p5msec {{ display: flex; align-items: center; gap: 8px; color: transparent; }}
     </style>
     """
-    return final_css, f"Loaded: {', '.join(status)}"
 
-# 2. 메인 설정
-st.set_page_config(page_title="현대 실시간 뉴스", page_icon="🗞️", layout="wide")
+st.markdown(get_font_and_style(), unsafe_allow_html=True)
 
-# 스타일 주입 및 상태 확인
-style_html, load_msg = inject_neo_hyundai()
-st.markdown(style_html, unsafe_allow_html=True)
-
-# 3. 데이터 및 매체명 로직
+# 2. 데이터 처리 함수 (기존 로직 유지)
 MEDIA_MAP = {
     'busan.com': '부산일보', 'etoday': '이투데이', 'biz.chosun': '조선비즈',
     'bizwn': '비즈니스포스트', 'businesspost': '비즈니스포스트', 'hankookilbo': '한국일보',
     'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스',
     'sedaily': '서울경제', 'edaily': '이데일리', 'mt.co.kr': '머니투데이',
-    'heraldcorp': '헤럴드경제', 'news1.kr': '뉴스1', 'newsis': '뉴시스',
-    'pinpointnews': '핀포인트뉴스', 'topdaily': '톱데일리', 'insight': '인사이트'
+    'heraldcorp': '헤럴드경제', 'news1.kr': '뉴스1', 'newsis': '뉴시스'
 }
 
 def get_kor_media(link):
@@ -98,34 +71,45 @@ def clean_text(text):
 
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=10&sort=date"
-    headers = {
-        "X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""),
-        "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")
-    }
+    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
     except: return []
 
-# 4. 화면 UI
-st.title("📢 현대 실시간 미디어 모니터링")
-st.sidebar.caption(f"폰트 상태: {load_msg}") # 사이드바에서 폰트 로드 여부 확인 가능
-st.caption(f"최종 업데이트: {datetime.now().strftime('%H:%M:%S')}")
+# 3. UI 레이아웃 구성
+# 상단 헤더 영역
+col_title, col_btn = st.columns([4, 1])
 
+with col_title:
+    st.markdown('<p class="user-info">사용자: 현대그룹 커뮤니케이션실</p>', unsafe_allow_html=True)
+    st.title("📢 현대 실시간 미디어 모니터링")
+    st.markdown('<p class="system-title">네이버/구글 실시간 모니터링 시스템</p>', unsafe_allow_html=True)
+
+with col_btn:
+    st.write("") # 간격 조정
+    st.write("")
+    if st.button("🔄 뉴스 모니터링 (새로고침)"):
+        st.rerun()
+
+st.caption(f"최종 업데이트: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+st.divider()
+
+# 4. 뉴스 리스트 출력
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
-    with st.expander(f"🔍 {kw} 실시간 뉴스", expanded=True):
+    with st.expander(f"{kw} 실시간 뉴스", expanded=True):
         items = get_naver_news(kw)
         if items:
-            col1, col2 = st.columns(2)
+            c1, c2 = st.columns(2)
             for i, item in enumerate(items):
-                target_col = col1 if i < 5 else col2
-                media_name = get_kor_media(item['originallink'])
+                target_col = c1 if i < 5 else c2
+                m_name = get_kor_media(item['originallink'])
                 with target_col:
                     st.markdown(f'''
                     <div class="news-card">
-                        <div class="m-tag">{media_name}</div>
+                        <div class="m-tag">{m_name}</div>
                         <a href="{item['link']}" target="_blank" class="n-link">{clean_text(item['title'])}</a>
                     </div>
                     ''', unsafe_allow_html=True)
