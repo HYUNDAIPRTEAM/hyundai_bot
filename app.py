@@ -117,3 +117,25 @@ for kw in keywords:
             # ✅ 네이버 매체명 로직 적용 (국문 없으면 영문)
             target_link = item.get('originallink') if item.get('originallink') else item.get('link', '')
             m_name = get_kor_media_name(target_link)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
+            
+    with col2:
+        st.caption("🔹 구글 뉴스")
+        for entry in get_google_news(kw):
+            raw_t = clean_text(entry.title)
+            if " - " in raw_t:
+                t_part, m_name = raw_t.rsplit(" - ", 1)
+            else:
+                t_part, m_name = raw_t, get_kor_media_name(entry.link)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+
+    if kw == "현정은":
+        st.write("")
+        st.caption("📝 네이버 블로그(최신순)")
+        blogs = get_naver_blog(kw)
+        if blogs:
+            for blog in blogs:
+                b_name = blog.get('bloggername', 'BLOG')
+                st.markdown(f'''<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
+    
+    st.divider()
