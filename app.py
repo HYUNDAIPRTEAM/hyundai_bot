@@ -24,7 +24,7 @@ font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용
+# 🔹 CSS 적용 (원본 스타일 유지)
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -56,7 +56,7 @@ def get_kor_media_name(link):
         if key in link: return kor_name
     return "뉴스"
 
-# 3. 데이터 수집 함수
+# 3. 뉴스 및 블로그 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -101,25 +101,29 @@ for kw in keywords:
     with col1:
         st.caption("🔹 네이버 뉴스")
         for item in get_naver_news(kw):
-            # ✅ 매체명 추출 함수 호출
+            # ✅ 수정된 출력 로직: 변수가 HTML 안에 직접 꽂히도록 처리
             m_name = get_kor_media_name(item.get('originallink', item.get('link', '')))
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
+            st.markdown(f'<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item["title"])}</a></div>', unsafe_allow_html=True)
+            
     with col2:
         st.caption("🔹 구글 뉴스")
         for entry in get_google_news(kw):
             raw_t = clean_text(entry.title)
             t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
-            # ✅ 매체명 추출 함수 호출
+            # ✅ 수정된 출력 로직: 변수 직접 매칭
             m_name = get_kor_media_name(entry.link)
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+            st.markdown(f'<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>', unsafe_allow_html=True)
 
+    # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
     if kw == "현정은":
         st.write("")
         st.caption("📝 네이버 블로그(최신순)")
         blogs = get_naver_blog(kw)
         if blogs:
             for blog in blogs:
-                st.markdown(f'''<div class="news-item"><span class="blog-tag">{blog.get('bloggername', 'BLOG')}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
+                # 블로그는 블로거 이름을 태그에 넣습니다.
+                b_name = blog.get('bloggername', 'BLOG')
+                st.markdown(f'<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog["title"])}</a></div>', unsafe_allow_html=True)
         else:
             st.write("관련 블로그 글이 없습니다.")
     
