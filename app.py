@@ -24,7 +24,7 @@ font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용
+# 🔹 CSS 적용 (스타일 유지)
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -51,7 +51,7 @@ def get_kor_media_name(link):
         if key in link: return kor_name
     return "뉴스"
 
-# 3. 데이터 수집 함수
+# 3. 뉴스 및 블로그 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -66,8 +66,8 @@ def get_google_news(query):
         return feedparser.parse(url).entries[:5]
     except: return []
 
+# 🌟 블로그 수집 함수: sort=date(최신순)로 고정
 def get_naver_blog(query):
-    # 최신순(date) 정렬 유지
     url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
     try:
@@ -87,13 +87,13 @@ with col_btn:
     if st.button("🔄 뉴스 새로고침", use_container_width=True):
         st.session_state.last_update = datetime.now()
 
-# 5. 키워드별 출력
+# 5. 키워드별 뉴스/블로그 출력
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
     st.subheader(f"🔍 {kw}")
     
-    # 🗞️ 뉴스 섹션
+    # 🗞️ 뉴스 섹션 (기존 코드 유지)
     col1, col2 = st.columns(2)
     with col1:
         st.caption("🔹 네이버 뉴스")
@@ -109,8 +109,7 @@ for kw in keywords:
     # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
     if kw == "현정은":
         st.write("")
-        # 문구 수정: 네이버 블로그(최신순)
-        st.caption("📝 네이버 블로그(최신순)")
+        st.caption("네이버 블로그(최신순)")
         blogs = get_naver_blog(kw)
         if blogs:
             for blog in blogs:
