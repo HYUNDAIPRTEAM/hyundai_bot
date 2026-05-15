@@ -3,9 +3,13 @@ import requests
 import feedparser
 from urllib.parse import quote
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import re
 import base64
 import os
+
+# 한국 시간 설정
+KST = ZoneInfo("Asia/Seoul")
 
 # 1. 시스템 설정
 st.set_page_config(page_title="HYUNDAI NEWS MONITORING", page_icon="🗞️", layout="wide")
@@ -59,15 +63,14 @@ def get_kor_media_name(link):
     
     # 1. 국문 리스트에 있으면 해당 이름 반환
     for key, kor_name in KOR_MEDIA_DICT.items():
-        if key in link_lower: return kor_name
+        if key in link_lower:
+            return kor_name
     
-    # 2. 국문이 없으면 도메인 영어만 추출 (예: pinpointnews.co.kr -> pinpointnews)
+    # 2. 국문이 없으면 도메인 영어만 추출
     try:
-        # http, www 제거 후 도메인 본체만 분리
         domain = link_lower.split('//')[-1].split('/')[0].replace('www.', '')
         parts = domain.split('.')
         
-        # .co.kr, .or.kr 등 복합 도메인 처리
         if len(parts) >= 3 and parts[-2] in ['co', 'go', 'or', 're', 'ac', 'ne']:
             return parts[-3]
         elif len(parts) >= 2:
@@ -80,37 +83,53 @@ def get_kor_media_name(link):
 # 3. 데이터 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
-    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
+    headers = {
+        "X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""),
+        "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")
+    }
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
-    except: return []
+    except:
+        return []
 
 def get_google_news(query):
     try:
         url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
         return feedparser.parse(url).entries[:5]
-    except: return []
+    except:
+        return []
 
 def get_naver_blog(query):
     url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
-    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
+    headers = {
+        "X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""),
+        "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")
+    }
     try:
         res = requests.get(url, headers=headers)
         return res.json().get('items', [])
-    except: return []
+    except:
+        return []
 
 # 4. 화면 구성
 if "last_update" not in st.session_state:
-    st.session_state.last_update = datetime.now()
+    st.session_state.last_update = datetime.now(KST)
 
 col_title, col_btn = st.columns([6, 1])
+
 with col_title:
-    st.markdown('<div class="custom-title">📢 HYUNDAI NEWS MONITORING</div>', unsafe_allow_html=True)
-    st.write(f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
+    st.markdown(
+        '<div class="custom-title">📢 HYUNDAI NEWS MONITORING</div>',
+        unsafe_allow_html=True
+    )
+    st.write(
+        f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
 with col_btn:
     if st.button("🔄 뉴스 새로고침", use_container_width=True):
-        st.session_state.last_update = datetime.now()
+        st.session_state.last_update = datetime.now(KST)
 
 # 5. 키워드별 출력
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
@@ -119,31 +138,69 @@ for kw in keywords:
     st.subheader(f"🔍 {kw}")
     
     col1, col2 = st.columns(2)
+
     with col1:
         st.caption("🔹 네이버 뉴스")
+
         for item in get_naver_news(kw):
-            # 네이버 매체명 로직
             target_link = item.get('originallink') if item.get('originallink') else item.get('link', '')
             m_name = get_kor_media_name(target_link)
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
-            
+
+            st.markdown(
+                f'''
+                <div class="news-item">
+                    <span class="media-tag">{m_name}</span>
+                    <a href="{item["link"]}" target="_blank" class="title-link">
+                        {clean_text(item['title'])}
+                    </a>
+                </div>
+                ''',
+                unsafe_allow_html=True
+            )
+
     with col2:
         st.caption("🔹 구글 뉴스")
+
         for entry in get_google_news(kw):
             raw_t = clean_text(entry.title)
+
             if " - " in raw_t:
                 t_part, m_name = raw_t.rsplit(" - ", 1)
             else:
                 t_part, m_name = raw_t, get_kor_media_name(entry.link)
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+
+            st.markdown(
+                f'''
+                <div class="news-item">
+                    <span class="media-tag">{m_name}</span>
+                    <a href="{entry.link}" target="_blank" class="title-link">
+                        {t_part}
+                    </a>
+                </div>
+                ''',
+                unsafe_allow_html=True
+            )
 
     if kw == "현정은":
         st.write("")
         st.caption("📝 네이버 블로그(최신순)")
+
         blogs = get_naver_blog(kw)
+
         if blogs:
             for blog in blogs:
                 b_name = blog.get('bloggername', 'BLOG')
-                st.markdown(f'''<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
-    
+
+                st.markdown(
+                    f'''
+                    <div class="news-item">
+                        <span class="blog-tag">{b_name}</span>
+                        <a href="{blog["link"]}" target="_blank" class="title-link">
+                            {clean_text(blog['title'])}
+                        </a>
+                    </div>
+                    ''',
+                    unsafe_allow_html=True
+                )
+
     st.divider()
