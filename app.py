@@ -45,7 +45,7 @@ def clean_text(text):
     return re.sub(r'<.*?>|&[a-z0-9]+;', '', text).strip()
 
 def get_kor_media_name(link):
-    # ✅ 국문 매칭 딕셔너리
+    # ✅ 국문 매칭 리스트
     KOR_MEDIA_DICT = {
         'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'chosun': '조선일보', 'donga': '동아일보', 'joins': '중앙일보',
         'hani': '한겨레', 'khan': '경향신문', 'segye': '세계일보', 'kmib': '국민일보', 'hankookilbo': '한국일보',
@@ -56,16 +56,24 @@ def get_kor_media_name(link):
         'sedaily': '서울경제', 'bizwn': '비즈니스포스트', 'kbs': 'KBS', 'mbc': 'MBC', 'sbs': 'SBS'
     }
     link_lower = link.lower()
-    # 1. 국문이 있으면 국문 반환
+    
+    # 1. 국문 리스트 우선 확인
     for key, kor_name in KOR_MEDIA_DICT.items():
         if key in link_lower: return kor_name
     
-    # 2. 국문이 없으면 영문(도메인) 추출하여 반환
+    # 2. 리스트에 없는 경우: 해당 링크의 실제 도메인을 분석하여 추출
     try:
-        # www. 빼고 도메인 첫 단어 추출 (예: news.v.daum.net -> daum)
-        domain_part = link.split('//')[-1].split('/')[0].replace('www.', '')
-        parts = domain_part.split('.')
-        return parts[-2] if len(parts) > 1 else parts[0]
+        # url에서 도메인 부분만 분리 (예: https://news.site.com/abc -> news.site.com)
+        domain = link_lower.split('//')[-1].split('/')[0].replace('www.', '')
+        parts = domain.split('.')
+        
+        # 도메인 구조에 따라 사이트 이름만 추출
+        if len(parts) >= 3 and parts[-2] in ['co', 'go', 'or', 're', 'ac', 'ne']:
+            return parts[-3] # 예: pinpointnews.co.kr -> pinpointnews
+        elif len(parts) >= 2:
+            return parts[-2] # 예: newsis.com -> newsis
+        else:
+            return parts[0]
     except:
         return "News"
 
@@ -98,44 +106,4 @@ if "last_update" not in st.session_state:
 
 col_title, col_btn = st.columns([6, 1])
 with col_title:
-    st.markdown('<div class="custom-title">📢 HYUNDAI NEWS MONITORING</div>', unsafe_allow_html=True)
-    st.write(f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
-with col_btn:
-    if st.button("🔄 뉴스 새로고침", use_container_width=True):
-        st.session_state.last_update = datetime.now()
-
-# 5. 키워드별 출력
-keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
-
-for kw in keywords:
-    st.subheader(f"🔍 {kw}")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.caption("🔹 네이버 뉴스")
-        for item in get_naver_news(kw):
-            # ✅ 네이버 매체명 로직 적용 (국문 없으면 영문)
-            target_link = item.get('originallink') if item.get('originallink') else item.get('link', '')
-            m_name = get_kor_media_name(target_link)
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
-            
-    with col2:
-        st.caption("🔹 구글 뉴스")
-        for entry in get_google_news(kw):
-            raw_t = clean_text(entry.title)
-            if " - " in raw_t:
-                t_part, m_name = raw_t.rsplit(" - ", 1)
-            else:
-                t_part, m_name = raw_t, get_kor_media_name(entry.link)
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
-
-    if kw == "현정은":
-        st.write("")
-        st.caption("📝 네이버 블로그(최신순)")
-        blogs = get_naver_blog(kw)
-        if blogs:
-            for blog in blogs:
-                b_name = blog.get('bloggername', 'BLOG')
-                st.markdown(f'''<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
-    
-    st.divider()
+    st.markdown('<div class="custom-title">📢 HYUNDAI
