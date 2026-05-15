@@ -24,7 +24,7 @@ font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용 (스타일 유지)
+# 🔹 CSS 적용
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -45,13 +45,18 @@ def clean_text(text):
     return re.sub(r'<.*?>|&[a-z0-9]+;', '', text).strip()
 
 def get_kor_media_name(link):
-    KOR_MEDIA_DICT = {'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'}
+    KOR_MEDIA_DICT = {
+        'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 
+        'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 
+        'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 
+        'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'
+    }
     link = link.lower()
     for key, kor_name in KOR_MEDIA_DICT.items():
         if key in link: return kor_name
     return "뉴스"
 
-# 3. 뉴스 및 블로그 수집 함수
+# 3. 데이터 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -66,7 +71,6 @@ def get_google_news(query):
         return feedparser.parse(url).entries[:5]
     except: return []
 
-# 🌟 블로그 수집 함수: sort=date(최신순)로 고정
 def get_naver_blog(query):
     url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -93,23 +97,25 @@ keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 for kw in keywords:
     st.subheader(f"🔍 {kw}")
     
-    # 🗞️ 뉴스 섹션 (기존 코드 유지)
     col1, col2 = st.columns(2)
     with col1:
         st.caption("🔹 네이버 뉴스")
         for item in get_naver_news(kw):
-            st.markdown(f'''<div class="news-item"><span class="media-tag">{get_kor_media_name(item['originallink'])}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
+            # ✅ 매체명 출력 함수(get_kor_media_name) 적용 확인
+            media_name = get_kor_media_name(item.get('originallink', item.get('link', '')))
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{media_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
     with col2:
         st.caption("🔹 구글 뉴스")
         for entry in get_google_news(kw):
             raw_t = clean_text(entry.title)
             t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
-            st.markdown(f'''<div class="news-item"><span class="media-tag">GOOGLE</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+            # ✅ 구글 뉴스는 원문 링크에서 매체명 추출
+            media_name = get_kor_media_name(entry.link)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{media_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
 
-    # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
     if kw == "현정은":
         st.write("")
-        st.caption("네이버 블로그(최신순)")
+        st.caption("📝 네이버 블로그(최신순)")
         blogs = get_naver_blog(kw)
         if blogs:
             for blog in blogs:
