@@ -18,13 +18,13 @@ def load_font(font_file):
         return base64.b64encode(data).decode()
     return None
 
-# 🔹 폰트 파일 로딩
+# 🔹 폰트 데이터 로딩
 font_bold = "NeoHyundai_B.woff2"
 font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용
+# 🔹 CSS 적용 (네이버 블로그용 전용 스타일 추가)
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -45,18 +45,13 @@ def clean_text(text):
     return re.sub(r'<.*?>|&[a-z0-9]+;', '', text).strip()
 
 def get_kor_media_name(link):
-    KOR_MEDIA_DICT = {
-        'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 
-        'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 
-        'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 
-        'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'
-    }
+    KOR_MEDIA_DICT = {'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'}
     link = link.lower()
     for key, kor_name in KOR_MEDIA_DICT.items():
         if key in link: return kor_name
     return "뉴스"
 
-# 3. 데이터 수집 함수
+# 3. 뉴스 및 블로그 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -71,9 +66,8 @@ def get_google_news(query):
         return feedparser.parse(url).entries[:5]
     except: return []
 
-# 🌟 블로그 수집 (정렬을 'date'로 설정하여 팀장님 캡처 화면과 맞춤)
 def get_naver_blog(query):
-    url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
+    url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=sim"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
     try:
         res = requests.get(url, headers=headers)
@@ -98,15 +92,27 @@ keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 for kw in keywords:
     st.subheader(f"🔍 {kw}")
     
-    # 🗞️ 뉴스 섹션 (2열 구성)
+    # 🗞️ 뉴스 섹션 (기존 2열 유지)
     col1, col2 = st.columns(2)
     with col1:
         st.caption("🔹 네이버 뉴스")
         for item in get_naver_news(kw):
-            st.markdown(f'<div class="news-item"><span class="media-tag">{get_kor_media_name(item["originallink"])}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item["title"])}</a></div>', unsafe_allow_html=True)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{get_kor_media_name(item['originallink'])}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
     with col2:
         st.caption("🔹 구글 뉴스")
         for entry in get_google_news(kw):
             raw_t = clean_text(entry.title)
             t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
-            st.markdown(f'<div class="news-item"><span class="media-tag">GOOGLE</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>', unsafe_allow_html=True)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">GOOGLE</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+
+    # 📝 블로그 섹션 (뉴스 아래에 추가)
+    st.write("")
+    st.caption(f"✨ {kw} 관련 네이버 블로그 동향")
+    blogs = get_naver_blog(kw)
+    if blogs:
+        for blog in blogs:
+            st.markdown(f'''<div class="news-item"><span class="blog-tag">{blog.get('bloggername', 'BLOG')}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
+    else:
+        st.write("관련 블로그 글이 없습니다.")
+    
+    st.divider()
