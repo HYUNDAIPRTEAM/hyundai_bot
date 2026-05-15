@@ -84,4 +84,39 @@ with col_title:
     st.write(f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
 with col_btn:
     if st.button("🔄 뉴스 새로고침", use_container_width=True):
-        st.session
+        st.session_state.last_update = datetime.now()
+
+# 5. 키워드별 뉴스/블로그 출력
+keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
+
+for kw in keywords:
+    st.subheader(f"🔍 {kw}")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.caption("🔹 네이버 뉴스")
+        for item in get_naver_news(kw):
+            # 매체명 추출
+            m_name = get_kor_media_name(item.get('originallink', item.get('link', '')))
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
+    with col2:
+        st.caption("🔹 구글 뉴스")
+        for entry in get_google_news(kw):
+            raw_t = clean_text(entry.title)
+            t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
+            # 매체명 추출
+            m_name = get_kor_media_name(entry.link)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
+
+    # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
+    if kw == "현정은":
+        st.write("")
+        st.caption("네이버 블로그(최신순)")
+        blogs = get_naver_blog(kw)
+        if blogs:
+            for blog in blogs:
+                st.markdown(f'''<div class="news-item"><span class="blog-tag">{blog.get('bloggername', 'BLOG')}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
+        else:
+            st.write("관련 블로그 글이 없습니다.")
+    
+    st.divider()
