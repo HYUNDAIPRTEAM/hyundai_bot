@@ -45,4 +45,62 @@ def clean_text(text):
     return re.sub(r'<.*?>|&[a-z0-9]+;', '', text).strip()
 
 def get_kor_media_name(link):
-    KOR_MEDIA_DICT = {'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 'donga': '동아일보', 'joins
+    # 에러가 났던 48번 라인을 안전하게 정리했습니다.
+    KOR_MEDIA_DICT = {
+        'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 
+        'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 
+        'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 
+        'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'
+    }
+    link = link.lower()
+    for key, kor_name in KOR_MEDIA_DICT.items():
+        if key in link: return kor_name
+    return "뉴스"
+
+# 3. 데이터 수집 함수
+def get_naver_news(query):
+    url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
+    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
+    try:
+        res = requests.get(url, headers=headers)
+        return res.json().get('items', [])
+    except: return []
+
+def get_google_news(query):
+    try:
+        url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ko&gl=KR&ceid=KR:ko"
+        return feedparser.parse(url).entries[:5]
+    except: return []
+
+def get_naver_blog(query):
+    url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
+    headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
+    try:
+        res = requests.get(url, headers=headers)
+        return res.json().get('items', [])
+    except: return []
+
+# 4. 화면 구성
+if "last_update" not in st.session_state:
+    st.session_state.last_update = datetime.now()
+
+col_title, col_btn = st.columns([6, 1])
+with col_title:
+    st.markdown('<div class="custom-title">📢 HYUNDAI NEWS MONITORING</div>', unsafe_allow_html=True)
+    st.write(f"최종 업데이트: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')}")
+with col_btn:
+    if st.button("🔄 뉴스 새로고침", use_container_width=True):
+        st.session_state.last_update = datetime.now()
+
+# 5. 키워드별 출력
+keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
+
+for kw in keywords:
+    st.subheader(f"🔍 {kw}")
+    
+    # 🗞️ 뉴스 섹션
+    col1, col2 = st.columns(2)
+    with col1:
+        st.caption("🔹 네이버 뉴스")
+        for item in get_naver_news(kw):
+            st.markdown(f'''<div class="news-item"><span class="media-tag
