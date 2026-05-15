@@ -24,7 +24,7 @@ font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용 (네이버 블로그용 전용 스타일 추가)
+# 🔹 CSS 적용 (스타일 유지)
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -66,8 +66,9 @@ def get_google_news(query):
         return feedparser.parse(url).entries[:5]
     except: return []
 
+# 🌟 블로그 수집 함수: sort=date(최신순)로 고정
 def get_naver_blog(query):
-    url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=sim"
+    url = f"https://openapi.naver.com/v1/search/blog.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
     try:
         res = requests.get(url, headers=headers)
@@ -92,7 +93,7 @@ keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 for kw in keywords:
     st.subheader(f"🔍 {kw}")
     
-    # 🗞️ 뉴스 섹션 (기존 2열 유지)
+    # 🗞️ 뉴스 섹션 (기존 코드 유지)
     col1, col2 = st.columns(2)
     with col1:
         st.caption("🔹 네이버 뉴스")
@@ -105,14 +106,15 @@ for kw in keywords:
             t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
             st.markdown(f'''<div class="news-item"><span class="media-tag">GOOGLE</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
 
-    # 📝 블로그 섹션 (뉴스 아래에 추가)
-    st.write("")
-    st.caption(f"✨ {kw} 관련 네이버 블로그 동향")
-    blogs = get_naver_blog(kw)
-    if blogs:
-        for blog in blogs:
-            st.markdown(f'''<div class="news-item"><span class="blog-tag">{blog.get('bloggername', 'BLOG')}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
-    else:
-        st.write("관련 블로그 글이 없습니다.")
+    # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
+    if kw == "현정은":
+        st.write("")
+        st.caption(f"✨ {kw} 관련 네이버 블로그 최신 동향")
+        blogs = get_naver_blog(kw)
+        if blogs:
+            for blog in blogs:
+                st.markdown(f'''<div class="news-item"><span class="blog-tag">{blog.get('bloggername', 'BLOG')}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
+        else:
+            st.write("관련 블로그 글이 없습니다.")
     
     st.divider()
