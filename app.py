@@ -18,13 +18,13 @@ def load_font(font_file):
         return base64.b64encode(data).decode()
     return None
 
-# 🔹 폰트 데이터 로딩
+# 🔹 폰트 데이터 로딩 (NeoHyundai 브랜드 자산 유지)
 font_bold = "NeoHyundai_B.woff2"
 font_reg = "NeoHyundai_R.woff2"
 data_b = load_font(font_bold)
 data_r = load_font(font_reg)
 
-# 🔹 CSS 적용 (원본 스타일 유지)
+# 🔹 CSS 적용
 if data_b and data_r:
     st.markdown(f"""
     <style>
@@ -45,18 +45,23 @@ def clean_text(text):
     return re.sub(r'<.*?>|&[a-z0-9]+;', '', text).strip()
 
 def get_kor_media_name(link):
+    # ✅ 주요 언론사 도메인 리스트 대폭 확장
     KOR_MEDIA_DICT = {
         'bizwn': '비즈니스포스트', 'hankookilbo': '한국일보', 'hankyung': '한국경제', 
         'mk.co.kr': '매일경제', 'yna.co.kr': '연합뉴스', 'chosun': '조선일보', 
         'donga': '동아일보', 'joins': '중앙일보', 'sedaily': '서울경제', 
-        'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제'
+        'edaily': '이데일리', 'mt.co.kr': '머니투데이', 'heraldcorp': '헤럴드경제',
+        'newsis': '뉴시스', 'news1': '뉴스1', 'fnnews': '파이낸셜뉴스',
+        'asiae': '아시아경제', 'dt.co.kr': '디지털타임스', 'segye': '세계일보',
+        'khan': '경향신문', 'inews24': '아이뉴스24', 'wowtv': '한국경제TV',
+        'ytn': 'YTN', 'sbs': 'SBS', 'kbs': 'KBS', 'mbc': 'MBC'
     }
     link = link.lower()
     for key, kor_name in KOR_MEDIA_DICT.items():
         if key in link: return kor_name
     return "뉴스"
 
-# 3. 뉴스 및 블로그 수집 함수
+# 3. 데이터 수집 함수
 def get_naver_news(query):
     url = f"https://openapi.naver.com/v1/search/news.json?query={query}&display=5&sort=date"
     headers = {"X-Naver-Client-Id": st.secrets.get("NAVER_ID", ""), "X-Naver-Client-Secret": st.secrets.get("NAVER_SECRET", "")}
@@ -91,7 +96,7 @@ with col_btn:
     if st.button("🔄 뉴스 새로고침", use_container_width=True):
         st.session_state.last_update = datetime.now()
 
-# 5. 키워드별 뉴스/블로그 출력
+# 5. 키워드별 출력
 keywords = ["현정은", "현대엘리베이터", "현대무벡스"]
 
 for kw in keywords:
@@ -101,18 +106,21 @@ for kw in keywords:
     with col1:
         st.caption("🔹 네이버 뉴스")
         for item in get_naver_news(kw):
-            # ✅ 수정된 출력 로직: 변수가 HTML 안에 직접 꽂히도록 처리
-            m_name = get_kor_media_name(item.get('originallink', item.get('link', '')))
-            st.markdown(f'<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item["title"])}</a></div>', unsafe_allow_html=True)
+            # ✅ 네이버는 원문 링크(originallink)를 우선 참조하여 매체명 추출
+            link_to_check = item.get('originallink') if item.get('originallink') else item.get('link', '')
+            m_name = get_kor_media_name(link_to_check)
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{item["link"]}" target="_blank" class="title-link">{clean_text(item['title'])}</a></div>''', unsafe_allow_html=True)
             
     with col2:
         st.caption("🔹 구글 뉴스")
         for entry in get_google_news(kw):
             raw_t = clean_text(entry.title)
-            t_part = raw_t.rsplit(" - ", 1)[0] if " - " in raw_t else raw_t
-            # ✅ 수정된 출력 로직: 변수 직접 매칭
-            m_name = get_kor_media_name(entry.link)
-            st.markdown(f'<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>', unsafe_allow_html=True)
+            # ✅ 구글 뉴스는 제목 끝의 " - 언론사명"을 분리하여 태그로 사용
+            if " - " in raw_t:
+                t_part, m_name = raw_t.rsplit(" - ", 1)
+            else:
+                t_part, m_name = raw_t, "뉴스"
+            st.markdown(f'''<div class="news-item"><span class="media-tag">{m_name}</span><a href="{entry.link}" target="_blank" class="title-link">{t_part}</a></div>''', unsafe_allow_html=True)
 
     # 📝 블로그 섹션: '현정은' 키워드일 때만 최신순으로 출력
     if kw == "현정은":
@@ -121,9 +129,9 @@ for kw in keywords:
         blogs = get_naver_blog(kw)
         if blogs:
             for blog in blogs:
-                # 블로그는 블로거 이름을 태그에 넣습니다.
+                # 블로그 이름 출력
                 b_name = blog.get('bloggername', 'BLOG')
-                st.markdown(f'<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog["title"])}</a></div>', unsafe_allow_html=True)
+                st.markdown(f'''<div class="news-item"><span class="blog-tag">{b_name}</span><a href="{blog["link"]}" target="_blank" class="title-link">{clean_text(blog['title'])}</a></div>''', unsafe_allow_html=True)
         else:
             st.write("관련 블로그 글이 없습니다.")
     
